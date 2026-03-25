@@ -28,7 +28,7 @@ const jerarquiaPrioridad: Record<PrioridadTarea, number> = {
   URGENTE: 3
 };
 
-export const almacenamientoTareas = "miniKanban.tareas";
+export const almacenamientoTareas = "miniKanbanPlus.tareas";
 
 export function generarIdentificador() {
   return `TK-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;

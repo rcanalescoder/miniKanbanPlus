@@ -1,6 +1,6 @@
-# miniKanban
+# miniKanbanPlus
 
-`miniKanban` es una demo web de un tablero Kanban moderno, clara y visual, pensada para enseñar en una clase cómo organizar trabajo, prioridades y responsables con una aplicación ligera.
+`miniKanbanPlus` es una demo web de un tablero Kanban moderno, clara y visual, pensada para enseñar en una clase cómo organizar trabajo, prioridades y responsables con una aplicación ligera.
 
 La demo combina dos ideas principales:
 - gestión visual del flujo de trabajo con Kanban

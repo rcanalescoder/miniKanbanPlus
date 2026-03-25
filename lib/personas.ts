@@ -6,7 +6,7 @@ import {
   normalizarUrlImagen
 } from "@/lib/seguridad";
 
-export const almacenamientoPersonas = "miniKanban.personas";
+export const almacenamientoPersonas = "miniKanbanPlus.personas";
 
 type GamaColor = {
   fondoA: string;

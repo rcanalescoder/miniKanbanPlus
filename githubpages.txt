@@ -277,11 +277,11 @@ la URL será:
 
 Si el repositorio se llama por ejemplo:
 
-`miniKanban`
+`miniKanbanPlus`
 
 la URL será:
 
-`https://usuario.github.io/miniKanban/`
+`https://usuario.github.io/miniKanbanPlus/`
 
 Por eso es importante configurar bien `basePath` y `assetPrefix` cuando se trata de un repositorio de proyecto.
 

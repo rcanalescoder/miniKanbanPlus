@@ -405,7 +405,7 @@ export function TableroKanban() {
           <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
-                miniKanban
+                miniKanbanPlus
               </span>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
                 gestor básico de tareas
