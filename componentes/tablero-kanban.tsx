@@ -31,6 +31,12 @@ import {
   limitarColeccion
 } from "@/lib/seguridad";
 import {
+  formatearRangoSemana,
+  obtenerInfoSemana,
+  obtenerSemanaId,
+  obtenerSemanaRelativa
+} from "@/lib/semanas";
+import {
   type BorradorTarea,
   type BorradorPersona,
   type ConfiguracionCargaRapida,
@@ -42,6 +48,7 @@ import {
   type Tarea,
   estadosKanban
 } from "@/tipos/tareas";
+import { generarIdentificador } from "@/lib/tareas";
 
 const etiquetasEstado: Record<EstadoKanban, string> = {
   DEFINIDO: "Definido",
@@ -98,6 +105,7 @@ export function TableroKanban() {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
   const [hidratado, setHidratado] = useState(false);
+  const [semanaActiva, setSemanaActiva] = useState(obtenerSemanaId());
   const [ordenActivo, setOrdenActivo] = useState<OrdenTablero>("manual");
   const [sentidoOrden, setSentidoOrden] = useState<SentidoOrden>("asc");
   const [tareaEnEdicion, setTareaEnEdicion] = useState<Tarea | null>(null);
@@ -107,6 +115,7 @@ export function TableroKanban() {
   const [estadoArrastre, setEstadoArrastre] = useState<EstadoArrastre>(null);
   const [destinoDrop, setDestinoDrop] = useState<DestinoArrastre | null>(null);
   const [mensajeSistema, setMensajeSistema] = useState<MensajeSistema>(null);
+  const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
 
   useEffect(() => {
     const almacenamientoPersonasLocal =
@@ -184,31 +193,36 @@ export function TableroKanban() {
     return () => window.clearTimeout(temporizador);
   }, [mensajeSistema]);
 
+  const tareasSemanales = useMemo(
+    () => tareas.filter((t) => t.semanaId === semanaActiva),
+    [tareas, semanaActiva]
+  );
+
   const columnas = useMemo(
     () =>
       estadosKanban.map((estado) => ({
         estado,
         titulo: etiquetasEstado[estado],
-        tareas: agruparPorEstado(tareas, estado, ordenActivo, sentidoOrden),
+        tareas: agruparPorEstado(tareasSemanales, estado, ordenActivo, sentidoOrden),
         estilos: estilosEstado[estado]
       })),
-    [ordenActivo, sentidoOrden, tareas]
+    [ordenActivo, sentidoOrden, tareasSemanales]
   );
 
   const tareasPorPersona = useMemo(
     () =>
-      tareas.reduce<Record<string, number>>((acumulado, tarea) => {
+      tareasSemanales.reduce<Record<string, number>>((acumulado, tarea) => {
         acumulado[tarea.personaAsignadaId] =
           (acumulado[tarea.personaAsignadaId] ?? 0) + 1;
         return acumulado;
       }, {}),
-    [tareas]
+    [tareasSemanales]
   );
 
   const arrastreDisponible = ordenActivo === "manual";
 
   function abrirCreacionRapida() {
-    setBorradorNuevaTarea(crearBorradorVacio("DEFINIDO", personas));
+    setBorradorNuevaTarea(crearBorradorVacio("DEFINIDO", personas, semanaActiva));
   }
 
   function guardarNuevaTarea(borrador: BorradorTarea) {
@@ -322,11 +336,13 @@ export function TableroKanban() {
             titulo,
             tipo: configuracion.tipo,
             prioridad: configuracion.prioridad,
+            complejidad: 1,
             estado: configuracion.estado,
             fechaDeseableFin: configuracion.fechaDeseableFin,
             observaciones: "",
             enlace: "",
-            personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas)
+            personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas),
+            semanaId: semanaActiva
           },
           obtenerSiguienteIndice(base, configuracion.estado)
         );
@@ -367,6 +383,52 @@ export function TableroKanban() {
     setEstadoArrastre({ identificador, origen });
   }
 
+  function moverASemanaSiguiente() {
+    if (seleccionadas.length === 0) return;
+    const proximaSemana = obtenerSemanaRelativa(semanaActiva, 1);
+    
+    setTareas(actual => {
+      return actual.map(t => {
+        if (seleccionadas.includes(t.identificador)) {
+          return { ...t, semanaId: proximaSemana };
+        }
+        return t;
+      });
+    });
+    
+    setSeleccionadas([]);
+    setMensajeSistema({ tipo: "exito", texto: `${seleccionadas.length} tareas movidas a la semana siguiente.` });
+  }
+
+  function eliminarSeleccionadas() {
+    if (seleccionadas.length === 0) return;
+    if (!confirm(`¿Estás seguro de eliminar ${seleccionadas.length} tareas?`)) return;
+    setTareas(actual => actual.filter(t => !seleccionadas.includes(t.identificador)));
+    setSeleccionadas([]);
+    setMensajeSistema({ tipo: "exito", texto: `${seleccionadas.length} tareas eliminadas.` });
+  }
+
+  function duplicarSeleccionadas() {
+    if (seleccionadas.length === 0) return;
+    setTareas(actual => {
+      const nuevas: Tarea[] = [];
+      actual.forEach(t => {
+        nuevas.push(t);
+        if (seleccionadas.includes(t.identificador)) {
+          nuevas.push({ 
+            ...t, 
+            identificador: generarIdentificador(), 
+            titulo: `${t.titulo} (copia)`,
+            fechaCreacion: new Date().toISOString()
+          });
+        }
+      });
+      return nuevas;
+    });
+    setSeleccionadas([]);
+    setMensajeSistema({ tipo: "exito", texto: `${seleccionadas.length} tareas duplicadas.` });
+  }
+
   function finalizarArrastre() {
     setEstadoArrastre(null);
     setDestinoDrop(null);
@@ -393,13 +455,23 @@ export function TableroKanban() {
     setDestinoDrop(null);
   }
 
-  if (!hidratado) {
-    return <div className="min-h-screen bg-slate-950" />;
+  function navegarSemana(delta: number) {
+    setSemanaActiva((actual) => obtenerSemanaRelativa(actual, delta));
   }
+
+  function irHoy() {
+    setSemanaActiva(obtenerSemanaId());
+  }
+
+  if (!hidratado) {
+    return <div className="min-h-screen bg-slate-50" />;
+  }
+
+  const infoSemana = obtenerInfoSemana(semanaActiva);
 
   return (
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.35),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(254,215,170,0.35),_transparent_30%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_100%)] text-slate-900">
-      <div className="mx-auto flex min-h-screen max-w-[1800px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-screen max-w-[98%] flex-col px-4 py-6 sm:px-6 lg:px-8">
         <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/80 px-6 py-6 shadow-panel backdrop-blur xl:px-8">
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(14,165,233,0.08),rgba(251,191,36,0.08),rgba(16,185,129,0.08))]" />
           <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
@@ -410,14 +482,39 @@ export function TableroKanban() {
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
                 gestor básico de tareas
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
-                Un tablero Kanban claro, visual y fácil de explicar para mostrar
-                como un equipo puede organizar trabajo, prioridades y bloqueos con
-                una herramienta ligera.
-              </p>
             </div>
 
             <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
+              {/* Navegación Semanal */}
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
+                <button
+                  onClick={() => navegarSemana(-1)}
+                  className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  title="Semana anterior"
+                >
+                  ◀
+                </button>
+                <div className="flex flex-col items-center px-4 min-w-[140px]">
+                  <span className="text-sm font-bold text-slate-900">Semana {infoSemana.numero}</span>
+                  <span className="text-[10px] font-medium text-slate-500 uppercase tracking-tight">
+                    {formatearRangoSemana(infoSemana.inicio, infoSemana.fin)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => navegarSemana(1)}
+                  className="rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  title="Semana siguiente"
+                >
+                  ▶
+                </button>
+                <button
+                  onClick={irHoy}
+                  className="ml-1 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-sky-600 hover:bg-sky-50 transition-colors"
+                >
+                  Hoy
+                </button>
+              </div>
+
               <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
                 <span className="font-medium text-slate-700">Ordenar por</span>
                 <select
@@ -459,7 +556,7 @@ export function TableroKanban() {
               <button
                 type="button"
                 onClick={abrirCreacionRapida}
-                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
+                className="rounded-2xl bg-sky-600 px-4 py-3 text-sm font-semibold text-white shadow-xl shadow-sky-100 transition hover:-translate-y-0.5 hover:bg-sky-500"
               >
                 Nueva tarea
               </button>
@@ -474,12 +571,42 @@ export function TableroKanban() {
           ) : null}
         </section>
 
-        <PanelPersonas
-          personas={personas}
-          totalTareas={tareas.length}
-          tareasPorPersona={tareasPorPersona}
-          onNuevaPersona={() => setModalPersonaAbierto(true)}
-        />
+        {/* Barra de Acciones en Lote (Flotante) */}
+        {seleccionadas.length > 0 && hidratado && (
+          <div className="fixed bottom-8 left-1/2 z-[60] -translate-x-1/2 flex items-center gap-4 rounded-3xl border border-slate-200 bg-white px-6 py-4 shadow-2xl">
+            <div className="flex flex-col border-r border-slate-100 pr-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Seleccionadas</span>
+              <span className="text-sm font-black text-sky-600">{seleccionadas.length} tareas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={duplicarSeleccionadas}
+                className="flex items-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition-colors"
+              >
+                👯 Duplicar
+              </button>
+              <button
+                onClick={moverASemanaSiguiente}
+                className="flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-sky-500/20 hover:bg-sky-600 transition-colors"
+              >
+                ➡️ Mover a prox. semana
+              </button>
+              <button
+                onClick={eliminarSeleccionadas}
+                className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-100 transition-colors"
+              >
+                🗑️ Eliminar
+              </button>
+              <button
+                onClick={() => setSeleccionadas([])}
+                className="ml-2 rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+
 
         <section className="mt-6 flex-1 overflow-x-auto pb-4">
           <div className="flex min-w-max gap-5">
@@ -500,6 +627,12 @@ export function TableroKanban() {
                 onFinalizarArrastre={finalizarArrastre}
                 onActualizarDestino={actualizarDestino}
                 onSoltar={completarDrop}
+                seleccionadas={seleccionadas}
+                alCambiarSeleccion={(id, sel) => {
+                  setSeleccionadas((actual) =>
+                    sel ? [...actual, id] : actual.filter((i) => i !== id)
+                  );
+                }}
               />
             ))}
           </div>

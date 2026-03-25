@@ -14,8 +14,10 @@ type PropiedadesLayout = Readonly<{
 
 export default function LayoutRaiz({ children }: PropiedadesLayout) {
   return (
-    <html lang="es">
-      <body>{children}</body>
+    <html lang="es" suppressHydrationWarning>
+      <body className="antialiased" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

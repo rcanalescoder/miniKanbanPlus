@@ -27,8 +27,3 @@ textarea {
   font: inherit;
 }
 
-@layer components {
-  .campo-formulario {
-    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400;
-  }
-}

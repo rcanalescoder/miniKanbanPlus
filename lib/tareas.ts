@@ -28,7 +28,7 @@ const jerarquiaPrioridad: Record<PrioridadTarea, number> = {
   URGENTE: 3
 };
 
-export const almacenamientoTareas = "miniKanbanPlus.tareas";
+export const almacenamientoTareas = "miniKanbanPlus.tareas.v2"; // Nueva versión para cambios de esquema
 
 export function generarIdentificador() {
   return `TK-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -36,17 +36,21 @@ export function generarIdentificador() {
 
 export function crearBorradorVacio(
   estado: EstadoKanban = "DEFINIDO",
-  personas: Persona[] = []
+  personas: Persona[] = [],
+  semanaId: string = ""
 ): BorradorTarea {
   return {
     titulo: "",
     tipo: "Planificacion",
     prioridad: "MEDIA",
+    complejidad: 1,
     fechaDeseableFin: "",
     observaciones: "",
     enlace: "",
     estado,
-    personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas)
+    personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas),
+    semanaId: semanaId,
+    proyectoId: undefined
   };
 }
 
@@ -65,6 +69,7 @@ export function crearTareaDesdeBorrador(
     prioridad: prioridadesTarea.includes(borrador.prioridad)
       ? borrador.prioridad
       : "MEDIA",
+    complejidad: borrador.complejidad || 1,
     fechaDeseableFin: normalizarFechaDia(borrador.fechaDeseableFin),
     observaciones: limpiarTextoMultilinea(
       borrador.observaciones,
@@ -72,7 +77,9 @@ export function crearTareaDesdeBorrador(
     ),
     enlace: normalizarUrlNavegable(borrador.enlace),
     estado: estadosKanban.includes(borrador.estado) ? borrador.estado : "DEFINIDO",
-    personaAsignadaId: limpiarTextoPlano(borrador.personaAsignadaId, 40)
+    personaAsignadaId: limpiarTextoPlano(borrador.personaAsignadaId, 40),
+    semanaId: borrador.semanaId,
+    proyectoId: borrador.proyectoId
   };
 }
 
@@ -88,6 +95,7 @@ export function normalizarTareasPersistidas(tareas: Tarea[]) {
     prioridad: prioridadesTarea.includes(tarea?.prioridad)
       ? tarea.prioridad
       : "MEDIA",
+    complejidad: tarea?.complejidad || 1,
     fechaDeseableFin: normalizarFechaDia(tarea?.fechaDeseableFin),
     observaciones: limpiarTextoMultilinea(
       tarea?.observaciones,
@@ -96,7 +104,9 @@ export function normalizarTareasPersistidas(tareas: Tarea[]) {
     enlace: normalizarUrlNavegable(tarea?.enlace),
     estado: estadosKanban.includes(tarea?.estado) ? tarea.estado : "DEFINIDO",
     personaAsignadaId: limpiarTextoPlano(tarea?.personaAsignadaId, 40),
-    indiceOrden: normalizarEnteroSeguro(tarea?.indiceOrden)
+    indiceOrden: normalizarEnteroSeguro(tarea?.indiceOrden),
+    semanaId: tarea?.semanaId || "",
+    proyectoId: tarea?.proyectoId
   }));
 }
 
@@ -279,6 +289,10 @@ export function formatearFechaMedia(fechaIso: string) {
   }).format(new Date(fechaIso));
 }
 
+import { obtenerSemanaId } from "@/lib/semanas";
+
+const semanaActual = obtenerSemanaId();
+
 export const tareasEjemplo: Tarea[] = normalizarIndices([
   {
     identificador: "TK-1001",
@@ -286,12 +300,14 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Preparar reunión de dirección",
     tipo: "Reunion",
     prioridad: "ALTA",
+    complejidad: 3,
     fechaDeseableFin: "2026-03-24",
     observaciones: "Definir agenda, asistentes y mensajes clave para el comité.",
     enlace: "https://example.com/reunion-direccion",
     estado: "DEFINIDO",
     personaAsignadaId: "",
-    indiceOrden: 0
+    indiceOrden: 0,
+    semanaId: semanaActual
   },
   {
     identificador: "TK-1002",
@@ -299,12 +315,14 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Revisar indicadores mensuales",
     tipo: "Analisis",
     prioridad: "MEDIA",
+    complejidad: 2,
     fechaDeseableFin: "2026-03-26",
     observaciones: "Comparar desviaciones y extraer alertas para operaciones.",
     enlace: "",
     estado: "DEFINIDO",
     personaAsignadaId: "",
-    indiceOrden: 1
+    indiceOrden: 1,
+    semanaId: semanaActual
   },
   {
     identificador: "TK-1003",
@@ -312,12 +330,14 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Coordinar propuesta presupuestaria",
     tipo: "Coordinacion",
     prioridad: "URGENTE",
+    complejidad: 8,
     fechaDeseableFin: "2026-03-21",
     observaciones: "Consolidar cifras de finanzas, personas y tecnología.",
     enlace: "",
     estado: "EN_CURSO",
     personaAsignadaId: "",
-    indiceOrden: 0
+    indiceOrden: 0,
+    semanaId: semanaActual
   },
   {
     identificador: "TK-1004",
@@ -325,12 +345,14 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Actualizar cuadro de mando",
     tipo: "Seguimiento",
     prioridad: "ALTA",
+    complejidad: 5,
     fechaDeseableFin: "2026-03-22",
     observaciones: "Refrescar métricas y validar los datos con negocio.",
     enlace: "https://example.com/cuadro-mando",
     estado: "EN_CURSO",
     personaAsignadaId: "",
-    indiceOrden: 1
+    indiceOrden: 1,
+    semanaId: semanaActual
   },
   {
     identificador: "TK-1005",
@@ -338,12 +360,14 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Validar cronograma de proyecto",
     tipo: "Planificacion",
     prioridad: "MEDIA",
+    complejidad: 3,
     fechaDeseableFin: "2026-03-20",
     observaciones: "Falta confirmación del proveedor externo para cerrar hitos.",
     enlace: "",
     estado: "BLOQUEADO",
     personaAsignadaId: "",
-    indiceOrden: 0
+    indiceOrden: 0,
+    semanaId: semanaActual
   },
   {
     identificador: "TK-1006",
@@ -351,11 +375,29 @@ export const tareasEjemplo: Tarea[] = normalizarIndices([
     titulo: "Cerrar informe ejecutivo",
     tipo: "Documentacion",
     prioridad: "ALTA",
+    complejidad: 1,
     fechaDeseableFin: "2026-03-18",
     observaciones: "Versión final enviada y pendiente solo de archivo interno.",
     enlace: "",
     estado: "TERMINADO",
     personaAsignadaId: "",
-    indiceOrden: 0
+    indiceOrden: 0,
+    semanaId: semanaActual
   }
 ]);
+export function obtenerTareas(): Tarea[] {
+  if (typeof window === "undefined") return tareasEjemplo;
+  const raw = window.localStorage.getItem(almacenamientoTareas);
+  if (!raw) return tareasEjemplo;
+  try {
+    return JSON.parse(raw) as Tarea[];
+  } catch {
+    return tareasEjemplo;
+  }
+}
+
+export function guardarTareas(tareas: Tarea[]) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(almacenamientoTareas, JSON.stringify(tareas));
+  }
+}

@@ -21,6 +21,8 @@ type PropiedadesColumnaKanban = {
   onFinalizarArrastre: () => void;
   onActualizarDestino: (destino: DestinoArrastre) => void;
   onSoltar: () => void;
+  seleccionadas: string[];
+  alCambiarSeleccion: (identificador: string, seleccionada: boolean) => void;
 };
 
 export function ColumnaKanban({
@@ -37,7 +39,9 @@ export function ColumnaKanban({
   onIniciarArrastre,
   onFinalizarArrastre,
   onActualizarDestino,
-  onSoltar
+  onSoltar,
+  seleccionadas,
+  alCambiarSeleccion
 }: PropiedadesColumnaKanban) {
   const mostrarHuecoFinal =
     destinoDrop?.estado === estado && destinoDrop.indice === tareas.length;
@@ -123,6 +127,8 @@ export function ColumnaKanban({
                 onEditarTitulo={onEditarTitulo}
                 onIniciarArrastre={() => onIniciarArrastre(tarea.identificador, tarea.estado)}
                 onFinalizarArrastre={onFinalizarArrastre}
+                seleccionada={seleccionadas.includes(tarea.identificador)}
+                alCambiarSeleccion={(sel) => alCambiarSeleccion(tarea.identificador, sel)}
               />
             </div>
           );

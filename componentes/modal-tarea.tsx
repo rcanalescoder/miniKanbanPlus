@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   limpiarTextoMultilinea,
   limpiarTextoPlano,
@@ -12,10 +12,12 @@ import {
   type EstadoKanban,
   type Persona,
   type PrioridadTarea,
+  type Proyecto,
   type Tarea,
   type TipoTarea,
   estadosKanban
 } from "@/tipos/tareas";
+import { obtenerProyectos } from "@/lib/proyectos";
 
 type PropiedadesBase = {
   personas: Persona[];
@@ -63,15 +65,23 @@ export function ModalTarea(propiedades: PropiedadesModalTarea) {
           titulo: propiedades.tarea.titulo,
           tipo: propiedades.tarea.tipo,
           prioridad: propiedades.tarea.prioridad,
+          complejidad: propiedades.tarea.complejidad,
           fechaDeseableFin: propiedades.tarea.fechaDeseableFin,
           observaciones: propiedades.tarea.observaciones,
           enlace: propiedades.tarea.enlace,
           estado: propiedades.tarea.estado,
-          personaAsignadaId: propiedades.tarea.personaAsignadaId
+          personaAsignadaId: propiedades.tarea.personaAsignadaId,
+          semanaId: propiedades.tarea.semanaId,
+          proyectoId: propiedades.tarea.proyectoId
         };
 
   const [formulario, setFormulario] = useState<BorradorTarea>(estadoInicial);
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setProyectos(obtenerProyectos());
+  }, []);
 
   function actualizarCampo<Clave extends keyof BorradorTarea>(
     clave: Clave,
@@ -216,6 +226,22 @@ export function ModalTarea(propiedades: PropiedadesModalTarea) {
             />
           </EtiquetaCampo>
 
+          <EtiquetaCampo titulo="Complejidad (Puntos)">
+            <select
+              value={formulario.complejidad}
+              onChange={(evento) =>
+                actualizarCampo("complejidad", parseInt(evento.target.value) as any)
+              }
+              className="campo-formulario"
+            >
+              {[1, 2, 3, 5, 8].map((v) => (
+                <option key={v} value={v}>
+                  {v} {v === 1 ? "punto" : "puntos"}
+                </option>
+              ))}
+            </select>
+          </EtiquetaCampo>
+
           <EtiquetaCampo titulo="Enlace">
             <input
               value={formulario.enlace}
@@ -224,6 +250,23 @@ export function ModalTarea(propiedades: PropiedadesModalTarea) {
               maxLength={2048}
               placeholder="https://..."
             />
+          </EtiquetaCampo>
+
+          <EtiquetaCampo titulo="Proyecto">
+            <select
+              value={formulario.proyectoId || ""}
+              onChange={(evento) =>
+                actualizarCampo("proyectoId", evento.target.value || undefined)
+              }
+              className="campo-formulario"
+            >
+              <option value="">Sin proyecto específico</option>
+              {proyectos.map((proyecto) => (
+                <option key={proyecto.identificador} value={proyecto.identificador}>
+                  {proyecto.nombre}
+                </option>
+              ))}
+            </select>
           </EtiquetaCampo>
 
           <EtiquetaCampo titulo="Persona responsable">

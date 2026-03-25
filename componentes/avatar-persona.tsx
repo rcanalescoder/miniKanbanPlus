@@ -7,13 +7,14 @@ import { normalizarUrlImagen } from "@/lib/seguridad";
 type PropiedadesAvatarPersona = {
   nombre: string;
   foto: string;
-  tamano?: "mini" | "media" | "grande";
+  tamano?: "mini" | "pequeno" | "media" | "grande";
 };
 
 const clasesTamano = {
-  mini: "h-8 w-8 rounded-full",
+  mini: "h-6 w-6 rounded-lg",
+  pequeno: "h-8 w-8 rounded-xl",
   media: "h-11 w-11 rounded-2xl",
-  grande: "h-14 w-14 rounded-[20px]"
+  grande: "h-24 w-24 rounded-[32px]"
 };
 
 export function AvatarPersona({

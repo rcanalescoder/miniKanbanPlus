@@ -1,0 +1,40 @@
+# 📝 Prompt miniKanbanPlus: Guía de Reproducción y Evolución
+
+Este documento resume la estrategia de "Bytecoding" utilizada para generar esta aplicación y sugiere caminos para profesionalizarla.
+
+## 🔗 Prompt Original de Estructura y Estética
+"Actúa como un experto en metodologías ágiles y desarrollo frontend con Next.js y Tailwind CSS. Tu objetivo es crear 'miniKanbanPlus', un gestor de tareas que no solo sea funcional, sino que proyecte una imagen de alto rendimiento y precisión.
+
+### 🎨 Diseño y UX:
+- **Estética**: Estilo 'Cheerful' y vibrante. Usa gradientes `Sky` e `Indigo` sobre fondos claros. Glassmorphism blanco con alta transparencia y bordes suaves.
+- **Accesibilidad**: Tipografía grande y de alto contraste para usuarios de +50 años. El interlineado debe ser generoso pero las tareas deben mantenerse compactas.
+- **Dashboard**: Panel Kanban semanal de 7 días, ocupando el 98% de la pantalla. Los puntos de esfuerzo se representan mediante 'rayitas' (1, 2, 3, 5, 8).
+
+### ⚙️ Lógica de Negocio:
+- **Flujo**: Al entrar, se parte directamente desde el Kanban semanal.
+- **Asignación**: No hay barra lateral de personas. El responsable se elige directamente al crear la tarea.
+- **Rendimiento**: Incluye gráficas comparativas semanales de puntos de esfuerzo por persona.
+- **Persistencia**: Usa `localStorage` para una versión 'Zero-Config' e inmediata.
+
+## 🛡️ Sugerencias para Evolución Profesional (Back-end & Seguridad)
+
+Si deseas llevar `miniKanbanPlus` a un entorno de producción real con múltiples usuarios y alta seguridad, sigue estas sugerencias de prompts para tu agente IA:
+
+### 1. Migración a Base de Datos (Seguridad de Datos)
+*Prompt Sugerido:*
+"Migra la persistencia de `localStorage` a una base de datos relacional orientada a la nube (Supabase o Prisma + PostgreSQL). Asegúrate de que las tareas estén vinculadas a una organización y que las credenciales de los usuarios se manejen mediante un esquema de usuarios robusto."
+
+### 2. Autenticación Profesional (Seguridad de Acceso)
+*Prompt Sugerido:*
+"Implementa un sistema de autenticación seguro utilizando `NextAuth.js` o `Clerk`. Sustituye el login simple `admin/admin` por un login con email/password verificado, hashing de contraseñas con `bcrypt` y protección CSRF."
+
+### 3. Securización de API (OWASP)
+*Prompt Sugerido:*
+"Crea una capa de API en Next.js (App Router) para manejar todas las operaciones de tareas y proyectos. Implementa validación estricta de esquemas con `Zod` para prevenir inyecciones y ataques XSS. Asegúrate de que cada usuario solo pueda ver y modificar las tareas de su propia organización."
+
+### 4. Gestión de Archivos (Imágenes Reales)
+*Prompt Sugerido:*
+"Configura un bucket de almacenamiento S3 para que las fotos de los usuarios sean reales y se carguen mediante un presigned URL seguro, eliminando las imágenes de 'Lorem Picsum' y permitiendo escalabilidad real."
+
+---
+**Recuerda**: La agilidad no comunicada es una estrategia no existente. Usa esta herramienta para sincronizar a tu equipo y elevar el rendimiento.

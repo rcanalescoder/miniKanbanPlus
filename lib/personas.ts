@@ -6,7 +6,7 @@ import {
   normalizarUrlImagen
 } from "@/lib/seguridad";
 
-export const almacenamientoPersonas = "miniKanbanPlus.personas";
+export const almacenamientoPersonas = "miniKanbanPlus.personas.v2";
 
 type GamaColor = {
   fondoA: string;
@@ -62,7 +62,10 @@ export function crearBorradorPersona(): BorradorPersona {
   return {
     nombre: "",
     area: "",
-    foto: ""
+    foto: "",
+    color: "#0ea5e9",
+    rol: "usuario",
+    clave: ""
   };
 }
 
@@ -76,42 +79,108 @@ export function crearPersonaDesdeBorrador(
     identificador: generarIdentificadorPersona(),
     nombre,
     area: limpiarTextoPlano(borrador.area, limitesSeguridad.areaMaxima),
-    foto: normalizarUrlImagen(borrador.foto) || crearFotoAvatar(nombre, indiceColor)
+    foto: normalizarUrlImagen(borrador.foto) || crearFotoAvatar(nombre, indiceColor),
+    color: borrador.color || gamasColor[indiceColor % gamasColor.length].fondoA,
+    rol: borrador.rol || "usuario",
+    clave: borrador.clave || ""
   };
 }
 
 export const personasEjemplo: Persona[] = [
   {
+    identificador: "PR-ADMIN",
+    nombre: "Administrador",
+    area: "Sistemas",
+    foto: "",
+    color: "#0ea5e9",
+    rol: "admin"
+  },
+  {
     identificador: "PR-1001",
     nombre: "Pepe",
     area: "Operaciones",
-    foto: crearFotoAvatar("Pepe", 0)
+    foto: crearFotoAvatar("Pepe", 0),
+    color: "#0ea5e9",
+    rol: "usuario"
   },
   {
     identificador: "PR-1002",
     nombre: "Juan",
     area: "Finanzas",
-    foto: crearFotoAvatar("Juan", 1)
+    foto: crearFotoAvatar("Juan", 1),
+    color: "#f59e0b",
+    rol: "usuario"
   },
   {
     identificador: "PR-1003",
     nombre: "Sara",
     area: "Personas",
-    foto: crearFotoAvatar("Sara", 2)
+    foto: crearFotoAvatar("Sara", 2),
+    color: "#10b981",
+    rol: "usuario"
   }
 ];
 
-export function obtenerPersonaAleatoria(personas: Persona[]) {
-  if (personas.length === 0) {
-    return null;
+export function obtenerPersonas(): Persona[] {
+  if (typeof window === "undefined") return personasEjemplo;
+  const raw = window.localStorage.getItem(almacenamientoPersonas);
+  if (!raw) return personasEjemplo;
+  try {
+    return JSON.parse(raw) as Persona[];
+  } catch {
+    return personasEjemplo;
   }
+}
 
+export function guardarPersonas(personas: Persona[]) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(almacenamientoPersonas, JSON.stringify(personas));
+  }
+}
+
+export function guardarPersona(persona: Persona) {
+  const personas = obtenerPersonas();
+  const indice = personas.findIndex(p => p.identificador === persona.identificador);
+  if (indice >= 0) {
+    personas[indice] = persona;
+  } else {
+    personas.push(persona);
+  }
+  guardarPersonas(personas);
+}
+
+export function eliminarPersona(identificador: string) {
+  const personas = obtenerPersonas().filter(p => p.identificador !== identificador);
+  guardarPersonas(personas);
+}
+
+export function obtenerPersonaAleatoria(personas: Persona[]) {
+  if (personas.length === 0) return null;
   const indice = Math.floor(Math.random() * personas.length);
   return personas[indice] ?? null;
 }
 
 export function obtenerIdentificadorPersonaAleatorio(personas: Persona[]) {
   return obtenerPersonaAleatoria(personas)?.identificador ?? "";
+}
+
+export function sincronizarTareasConPersonas(tareas: Tarea[], personas: Persona[]) {
+  const identificadores = new Set(personas.map((persona) => persona.identificador));
+
+  return tareas.map((tarea) => {
+    if (tarea.personaAsignadaId && identificadores.has(tarea.personaAsignadaId)) {
+      return tarea;
+    }
+
+    return {
+      ...tarea,
+      personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas)
+    };
+  });
+}
+
+export function buscarPersonaPorId(id: string): Persona | undefined {
+  return obtenerPersonas().find((p) => p.identificador === id);
 }
 
 export function normalizarPersonas(personas: Persona[]) {
@@ -128,23 +197,15 @@ export function normalizarPersonas(personas: Persona[]) {
         nombre: nombre || `Persona ${indice + 1}`,
         area: area || "Área no definida",
         foto:
-          normalizarUrlImagen(persona?.foto) || crearFotoAvatar(nombre || "Persona", indice)
+          normalizarUrlImagen(persona?.foto) || crearFotoAvatar(nombre || "Persona", indice),
+        color: persona?.color || gamasColor[indice % gamasColor.length].fondoA,
+        rol: persona?.rol || "usuario",
+        clave: persona?.clave || ""
       };
     }
   );
 }
 
-export function sincronizarTareasConPersonas(tareas: Tarea[], personas: Persona[]) {
-  const identificadores = new Set(personas.map((persona) => persona.identificador));
-
-  return tareas.map((tarea) => {
-    if (tarea.personaAsignadaId && identificadores.has(tarea.personaAsignadaId)) {
-      return tarea;
-    }
-
-    return {
-      ...tarea,
-      personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas)
-    };
-  });
+export function obtenerGamaColorRandom() {
+  return gamasColor[Math.floor(Math.random() * gamasColor.length)].fondoA;
 }
