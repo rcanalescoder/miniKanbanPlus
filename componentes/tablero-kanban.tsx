@@ -1,0 +1,560 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { ColumnaKanban } from "@/componentes/columna-kanban";
+import { ModalPersona } from "@/componentes/modal-persona";
+import { ModalCargaRapida } from "@/componentes/modal-carga-rapida";
+import { ModalTarea } from "@/componentes/modal-tarea";
+import { PanelPersonas } from "@/componentes/panel-personas";
+import {
+  almacenamientoPersonas,
+  crearPersonaDesdeBorrador,
+  normalizarPersonas,
+  obtenerIdentificadorPersonaAleatorio,
+  personasEjemplo,
+  sincronizarTareasConPersonas
+} from "@/lib/personas";
+import {
+  agruparPorEstado,
+  almacenamientoTareas,
+  crearBorradorVacio,
+  crearTareaDesdeBorrador,
+  moverTarea,
+  normalizarIndices,
+  normalizarTareasPersistidas,
+  obtenerSiguienteIndice,
+  tareasEjemplo
+} from "@/lib/tareas";
+import {
+  limpiarTextoPlano,
+  limitesSeguridad,
+  limitarColeccion
+} from "@/lib/seguridad";
+import {
+  type BorradorTarea,
+  type BorradorPersona,
+  type ConfiguracionCargaRapida,
+  type DestinoArrastre,
+  type EstadoKanban,
+  type OrdenTablero,
+  type Persona,
+  type SentidoOrden,
+  type Tarea,
+  estadosKanban
+} from "@/tipos/tareas";
+
+const etiquetasEstado: Record<EstadoKanban, string> = {
+  DEFINIDO: "Definido",
+  EN_CURSO: "En curso",
+  BLOQUEADO: "Bloqueado",
+  TERMINADO: "Terminado"
+};
+
+const estilosEstado: Record<
+  EstadoKanban,
+  { fondo: string; borde: string; brillo: string }
+> = {
+  DEFINIDO: {
+    fondo: "from-sky-400 via-cyan-300 to-white",
+    borde: "border-sky-200",
+    brillo: "bg-sky-50/85"
+  },
+  EN_CURSO: {
+    fondo: "from-amber-300 via-orange-200 to-white",
+    borde: "border-amber-200",
+    brillo: "bg-amber-50/85"
+  },
+  BLOQUEADO: {
+    fondo: "from-rose-300 via-pink-200 to-white",
+    borde: "border-rose-200",
+    brillo: "bg-rose-50/85"
+  },
+  TERMINADO: {
+    fondo: "from-emerald-300 via-lime-200 to-white",
+    borde: "border-emerald-200",
+    brillo: "bg-emerald-50/85"
+  }
+};
+
+const configuracionCargaInicial: ConfiguracionCargaRapida = {
+  lineas: "",
+  tipo: "Planificacion",
+  prioridad: "MEDIA",
+  estado: "DEFINIDO",
+  fechaDeseableFin: ""
+};
+
+type EstadoArrastre = {
+  identificador: string;
+  origen: EstadoKanban;
+} | null;
+
+type MensajeSistema = {
+  tipo: "exito" | "error";
+  texto: string;
+} | null;
+
+export function TableroKanban() {
+  const [tareas, setTareas] = useState<Tarea[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]);
+  const [hidratado, setHidratado] = useState(false);
+  const [ordenActivo, setOrdenActivo] = useState<OrdenTablero>("manual");
+  const [sentidoOrden, setSentidoOrden] = useState<SentidoOrden>("asc");
+  const [tareaEnEdicion, setTareaEnEdicion] = useState<Tarea | null>(null);
+  const [borradorNuevaTarea, setBorradorNuevaTarea] = useState<BorradorTarea | null>(null);
+  const [modalPersonaAbierto, setModalPersonaAbierto] = useState(false);
+  const [modalCargaAbierto, setModalCargaAbierto] = useState(false);
+  const [estadoArrastre, setEstadoArrastre] = useState<EstadoArrastre>(null);
+  const [destinoDrop, setDestinoDrop] = useState<DestinoArrastre | null>(null);
+  const [mensajeSistema, setMensajeSistema] = useState<MensajeSistema>(null);
+
+  useEffect(() => {
+    const almacenamientoPersonasLocal =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(almacenamientoPersonas)
+        : null;
+
+    const personasBase = (() => {
+      if (!almacenamientoPersonasLocal) {
+        return personasEjemplo;
+      }
+
+      try {
+        return normalizarPersonas(JSON.parse(almacenamientoPersonasLocal) as Persona[]);
+      } catch {
+        return personasEjemplo;
+      }
+    })();
+
+    const almacenamiento =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(almacenamientoTareas)
+        : null;
+
+    setPersonas(personasBase);
+
+    if (!almacenamiento) {
+      setTareas(sincronizarTareasConPersonas(tareasEjemplo, personasBase));
+      setHidratado(true);
+      return;
+    }
+
+    try {
+      const recuperadas = JSON.parse(almacenamiento) as Tarea[];
+      setTareas(
+        normalizarIndices(
+          sincronizarTareasConPersonas(
+            normalizarTareasPersistidas(recuperadas),
+            personasBase
+          )
+        )
+      );
+    } catch {
+      setTareas(sincronizarTareasConPersonas(tareasEjemplo, personasBase));
+    } finally {
+      setHidratado(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hidratado || typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(almacenamientoTareas, JSON.stringify(tareas));
+  }, [hidratado, tareas]);
+
+  useEffect(() => {
+    if (!hidratado || typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(almacenamientoPersonas, JSON.stringify(personas));
+  }, [hidratado, personas]);
+
+  useEffect(() => {
+    if (!mensajeSistema) {
+      return;
+    }
+
+    const temporizador = window.setTimeout(() => {
+      setMensajeSistema(null);
+    }, 2400);
+
+    return () => window.clearTimeout(temporizador);
+  }, [mensajeSistema]);
+
+  const columnas = useMemo(
+    () =>
+      estadosKanban.map((estado) => ({
+        estado,
+        titulo: etiquetasEstado[estado],
+        tareas: agruparPorEstado(tareas, estado, ordenActivo, sentidoOrden),
+        estilos: estilosEstado[estado]
+      })),
+    [ordenActivo, sentidoOrden, tareas]
+  );
+
+  const tareasPorPersona = useMemo(
+    () =>
+      tareas.reduce<Record<string, number>>((acumulado, tarea) => {
+        acumulado[tarea.personaAsignadaId] =
+          (acumulado[tarea.personaAsignadaId] ?? 0) + 1;
+        return acumulado;
+      }, {}),
+    [tareas]
+  );
+
+  const arrastreDisponible = ordenActivo === "manual";
+
+  function abrirCreacionRapida() {
+    setBorradorNuevaTarea(crearBorradorVacio("DEFINIDO", personas));
+  }
+
+  function guardarNuevaTarea(borrador: BorradorTarea) {
+    const indiceOrden = obtenerSiguienteIndice(tareas, borrador.estado);
+    const nuevaTarea = crearTareaDesdeBorrador(borrador, indiceOrden);
+
+    setTareas((estadoActual) => normalizarIndices([...estadoActual, nuevaTarea]));
+    setBorradorNuevaTarea(null);
+    setMensajeSistema({ tipo: "exito", texto: "Tarea creada correctamente." });
+  }
+
+  function guardarEdicionCompleta(tareaActualizada: Tarea) {
+    setTareas((estadoActual) => {
+      const anterior = estadoActual.find(
+        (tarea) => tarea.identificador === tareaActualizada.identificador
+      );
+
+      if (!anterior) {
+        return estadoActual;
+      }
+
+      const resto = estadoActual.filter(
+        (tarea) => tarea.identificador !== tareaActualizada.identificador
+      );
+
+      const indiceOrden =
+        anterior.estado === tareaActualizada.estado
+          ? anterior.indiceOrden
+          : obtenerSiguienteIndice(resto, tareaActualizada.estado);
+
+      return normalizarIndices([
+        ...resto,
+        {
+          ...tareaActualizada,
+          indiceOrden
+        }
+      ]);
+    });
+
+    setTareaEnEdicion(null);
+    setMensajeSistema({ tipo: "exito", texto: "Cambios guardados." });
+  }
+
+  function guardarTituloRapido(identificador: string, titulo: string) {
+    const tituloLimpio = limpiarTextoPlano(titulo, limitesSeguridad.tituloMaximo);
+
+    if (!tituloLimpio) {
+      setMensajeSistema({ tipo: "error", texto: "El título no puede quedar vacío." });
+      return;
+    }
+
+    setTareas((estadoActual) =>
+      estadoActual.map((tarea) =>
+        tarea.identificador === identificador
+          ? {
+              ...tarea,
+              titulo: tituloLimpio
+            }
+          : tarea
+      )
+    );
+    setMensajeSistema({ tipo: "exito", texto: "Título actualizado." });
+  }
+
+  function eliminarTarea(identificador: string) {
+    const confirmar = window.confirm(
+      "Esta acción eliminará la tarea. ¿Quieres continuar?"
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    setTareas((estadoActual) =>
+      normalizarIndices(
+        estadoActual.filter((tarea) => tarea.identificador !== identificador)
+      )
+    );
+    setTareaEnEdicion(null);
+    setMensajeSistema({ tipo: "exito", texto: "Tarea eliminada." });
+  }
+
+  function crearDesdeCargaRapida(configuracion: ConfiguracionCargaRapida) {
+    const titulos = limitarColeccion(
+      configuracion.lineas
+        .split("\n")
+        .map((linea) =>
+          limpiarTextoPlano(
+            linea.replace(/^[\s*-]+/, ""),
+            limitesSeguridad.tituloMaximo
+          )
+        )
+        .filter(Boolean),
+      limitesSeguridad.lineasCargaRapidaMaximas
+    );
+
+    if (titulos.length === 0) {
+      setMensajeSistema({
+        tipo: "error",
+        texto: "Pega al menos una línea con un título de tarea."
+      });
+      return;
+    }
+
+    setTareas((estadoActual) => {
+      const base = [...estadoActual];
+
+      titulos.forEach((titulo) => {
+        const nuevaTarea = crearTareaDesdeBorrador(
+          {
+            titulo,
+            tipo: configuracion.tipo,
+            prioridad: configuracion.prioridad,
+            estado: configuracion.estado,
+            fechaDeseableFin: configuracion.fechaDeseableFin,
+            observaciones: "",
+            enlace: "",
+            personaAsignadaId: obtenerIdentificadorPersonaAleatorio(personas)
+          },
+          obtenerSiguienteIndice(base, configuracion.estado)
+        );
+
+        base.push(nuevaTarea);
+      });
+
+      return normalizarIndices(base);
+    });
+
+    setModalCargaAbierto(false);
+    setMensajeSistema({
+      tipo: "exito",
+      texto: `${titulos.length} tareas creadas mediante carga rápida.`
+    });
+  }
+
+  function guardarNuevaPersona(borrador: BorradorPersona) {
+    const nuevaPersona = crearPersonaDesdeBorrador(borrador, personas.length);
+
+    setPersonas((estadoActual) => [...estadoActual, nuevaPersona]);
+    setTareas((estadoActual) =>
+      estadoActual.map((tarea) =>
+        !tarea.personaAsignadaId
+          ? { ...tarea, personaAsignadaId: nuevaPersona.identificador }
+          : tarea
+      )
+    );
+    setModalPersonaAbierto(false);
+    setMensajeSistema({ tipo: "exito", texto: "Persona creada correctamente." });
+  }
+
+  function iniciarArrastre(identificador: string, origen: EstadoKanban) {
+    if (!arrastreDisponible) {
+      return;
+    }
+
+    setEstadoArrastre({ identificador, origen });
+  }
+
+  function finalizarArrastre() {
+    setEstadoArrastre(null);
+    setDestinoDrop(null);
+  }
+
+  function actualizarDestino(destino: DestinoArrastre) {
+    if (!arrastreDisponible || !estadoArrastre) {
+      return;
+    }
+
+    setDestinoDrop(destino);
+  }
+
+  function completarDrop() {
+    if (!arrastreDisponible || !estadoArrastre || !destinoDrop) {
+      return;
+    }
+
+    setTareas((estadoActual) =>
+      moverTarea(estadoActual, estadoArrastre.identificador, destinoDrop)
+    );
+    setMensajeSistema({ tipo: "exito", texto: "Tarea reubicada." });
+    setEstadoArrastre(null);
+    setDestinoDrop(null);
+  }
+
+  if (!hidratado) {
+    return <div className="min-h-screen bg-slate-950" />;
+  }
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(186,230,253,0.35),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(254,215,170,0.35),_transparent_30%),linear-gradient(180deg,_#f8fafc_0%,_#eef6ff_100%)] text-slate-900">
+      <div className="mx-auto flex min-h-screen max-w-[1800px] flex-col px-4 py-6 sm:px-6 lg:px-8">
+        <section className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/80 px-6 py-6 shadow-panel backdrop-blur xl:px-8">
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(14,165,233,0.08),rgba(251,191,36,0.08),rgba(16,185,129,0.08))]" />
+          <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-sky-700">
+                miniKanban
+              </span>
+              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 md:text-4xl">
+                gestor básico de tareas
+              </h1>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600 md:text-base">
+                Un tablero Kanban claro, visual y fácil de explicar para mostrar
+                como un equipo puede organizar trabajo, prioridades y bloqueos con
+                una herramienta ligera.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:justify-end">
+              <label className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm">
+                <span className="font-medium text-slate-700">Ordenar por</span>
+                <select
+                  className="bg-transparent font-medium text-slate-900 outline-none"
+                  value={ordenActivo}
+                  onChange={(evento) =>
+                    setOrdenActivo(evento.target.value as OrdenTablero)
+                  }
+                >
+                  <option value="manual">Orden manual</option>
+                  <option value="titulo">Título</option>
+                  <option value="tipo">Tipo</option>
+                  <option value="prioridad">Prioridad</option>
+                  <option value="fechaDeseable">Fecha deseable</option>
+                  <option value="fechaCreacion">Fecha de creación</option>
+                </select>
+              </label>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSentidoOrden((valorActual) =>
+                    valorActual === "asc" ? "desc" : "asc"
+                  )
+                }
+                className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:text-slate-950"
+              >
+                {sentidoOrden === "asc" ? "Ascendente" : "Descendente"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setModalCargaAbierto(true)}
+                className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-100"
+              >
+                Carga rápida
+              </button>
+
+              <button
+                type="button"
+                onClick={abrirCreacionRapida}
+                className="rounded-2xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800"
+              >
+                Nueva tarea
+              </button>
+            </div>
+          </div>
+
+          {!arrastreDisponible ? (
+            <div className="relative mt-5 rounded-2xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-900">
+              El drag & drop se desactiva mientras el tablero usa un orden distinto
+              al manual.
+            </div>
+          ) : null}
+        </section>
+
+        <PanelPersonas
+          personas={personas}
+          totalTareas={tareas.length}
+          tareasPorPersona={tareasPorPersona}
+          onNuevaPersona={() => setModalPersonaAbierto(true)}
+        />
+
+        <section className="mt-6 flex-1 overflow-x-auto pb-4">
+          <div className="flex min-w-max gap-5">
+            {columnas.map((columna) => (
+              <ColumnaKanban
+                key={columna.estado}
+                estado={columna.estado}
+                titulo={columna.titulo}
+                tareas={columna.tareas}
+                personas={personas}
+                estilos={columna.estilos}
+                arrastreDisponible={arrastreDisponible}
+                estadoArrastre={estadoArrastre}
+                destinoDrop={destinoDrop}
+                onAbrir={(tarea) => setTareaEnEdicion(tarea)}
+                onEditarTitulo={guardarTituloRapido}
+                onIniciarArrastre={iniciarArrastre}
+                onFinalizarArrastre={finalizarArrastre}
+                onActualizarDestino={actualizarDestino}
+                onSoltar={completarDrop}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+
+      {tareaEnEdicion ? (
+        <ModalTarea
+          modo="editar"
+          tarea={tareaEnEdicion}
+          personas={personas}
+          onCerrar={() => setTareaEnEdicion(null)}
+          onGuardarEdicion={guardarEdicionCompleta}
+          onEliminar={eliminarTarea}
+        />
+      ) : null}
+
+      {borradorNuevaTarea ? (
+        <ModalTarea
+          modo="crear"
+          borrador={borradorNuevaTarea}
+          personas={personas}
+          onCerrar={() => setBorradorNuevaTarea(null)}
+          onGuardarNueva={guardarNuevaTarea}
+        />
+      ) : null}
+
+      {modalPersonaAbierto ? (
+        <ModalPersona
+          onCerrar={() => setModalPersonaAbierto(false)}
+          onGuardar={guardarNuevaPersona}
+        />
+      ) : null}
+
+      {modalCargaAbierto ? (
+        <ModalCargaRapida
+          configuracionInicial={configuracionCargaInicial}
+          onCerrar={() => setModalCargaAbierto(false)}
+          onCrear={crearDesdeCargaRapida}
+        />
+      ) : null}
+
+      {mensajeSistema ? (
+        <div className="pointer-events-none fixed bottom-5 right-5 z-50">
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm font-medium shadow-lg backdrop-blur ${
+              mensajeSistema.tipo === "exito"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-rose-200 bg-rose-50 text-rose-900"
+            }`}
+          >
+            {mensajeSistema.texto}
+          </div>
+        </div>
+      ) : null}
+    </main>
+  );
+}
