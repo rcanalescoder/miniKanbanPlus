@@ -116,6 +116,7 @@ export function TableroKanban() {
   const [destinoDrop, setDestinoDrop] = useState<DestinoArrastre | null>(null);
   const [mensajeSistema, setMensajeSistema] = useState<MensajeSistema>(null);
   const [seleccionadas, setSeleccionadas] = useState<string[]>([]);
+  const [agruparPorPersona, setAgruparPorPersona] = useState(false);
 
   useEffect(() => {
     const almacenamientoPersonasLocal =
@@ -220,6 +221,32 @@ export function TableroKanban() {
   );
 
   const arrastreDisponible = ordenActivo === "manual";
+
+  const swimlanes = useMemo(() => {
+    if (!agruparPorPersona) return null;
+
+    const porPersona: Record<string, Tarea[]> = {};
+    tareasSemanales.forEach((t) => {
+      const pid = t.personaAsignadaId || "sin-asignar";
+      if (!porPersona[pid]) porPersona[pid] = [];
+      porPersona[pid].push(t);
+    });
+
+    const lanes = Object.keys(porPersona).map((pid) => {
+      const p = personas.find((pe) => pe.identificador === pid);
+      return {
+        id: pid,
+        persona: p,
+        tareas: porPersona[pid],
+      };
+    });
+
+    return lanes.sort((a, b) => {
+      if (a.id === "sin-asignar") return 1;
+      if (b.id === "sin-asignar") return -1;
+      return (a.persona?.nombre || "").localeCompare(b.persona?.nombre || "");
+    });
+  }, [agruparPorPersona, tareasSemanales, personas]);
 
   function abrirCreacionRapida() {
     setBorradorNuevaTarea(crearBorradorVacio("DEFINIDO", personas, semanaActiva));
@@ -547,6 +574,19 @@ export function TableroKanban() {
 
               <button
                 type="button"
+                onClick={() => setAgruparPorPersona((actual) => !actual)}
+                className={`flex items-center gap-2 rounded-2xl border px-3 py-3 text-sm font-semibold shadow-sm transition hover:-translate-y-0.5 ${
+                  agruparPorPersona
+                    ? "border-sky-300 bg-sky-50 text-sky-900"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:text-slate-950"
+                }`}
+                title="Mostrar u ocultar carriles por persona"
+              >
+                {agruparPorPersona ? "🏊‍♀️ Calles activas" : "🏊 Vista agrupada"}
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setModalCargaAbierto(true)}
                 className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-100"
               >
@@ -609,33 +649,103 @@ export function TableroKanban() {
 
 
         <section className="mt-6 flex-1 overflow-x-auto pb-4">
-          <div className="flex min-w-max gap-5">
-            {columnas.map((columna) => (
-              <ColumnaKanban
-                key={columna.estado}
-                estado={columna.estado}
-                titulo={columna.titulo}
-                tareas={columna.tareas}
-                personas={personas}
-                estilos={columna.estilos}
-                arrastreDisponible={arrastreDisponible}
-                estadoArrastre={estadoArrastre}
-                destinoDrop={destinoDrop}
-                onAbrir={(tarea) => setTareaEnEdicion(tarea)}
-                onEditarTitulo={guardarTituloRapido}
-                onIniciarArrastre={iniciarArrastre}
-                onFinalizarArrastre={finalizarArrastre}
-                onActualizarDestino={actualizarDestino}
-                onSoltar={completarDrop}
-                seleccionadas={seleccionadas}
-                alCambiarSeleccion={(id, sel) => {
-                  setSeleccionadas((actual) =>
-                    sel ? [...actual, id] : actual.filter((i) => i !== id)
-                  );
-                }}
-              />
-            ))}
-          </div>
+          {agruparPorPersona && swimlanes ? (
+            <div className="flex flex-col gap-6 min-w-max">
+              {swimlanes.map((lane) => (
+                <div
+                  key={lane.id}
+                  className="flex gap-[18px] rounded-[32px] border border-slate-200 bg-white/40 p-5 shadow-sm backdrop-blur"
+                >
+                  <div className="flex w-[140px] shrink-0 flex-col items-center justify-center rounded-[24px] border border-slate-100 bg-white p-3 shadow-sm">
+                    {lane.persona ? (
+                      <>
+                        <img
+                          src={lane.persona.foto}
+                          alt={lane.persona.nombre}
+                          className="h-[60px] w-[60px] rounded-[18px] bg-slate-100 object-cover shadow-sm"
+                        />
+                        <span className="mt-4 text-center text-[12px] font-black leading-tight text-slate-700">
+                          {lane.persona.nombre}
+                        </span>
+                        <span className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                          {lane.persona.area || "Equipo"}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[18px] bg-slate-100 text-2xl text-slate-400">
+                          ?
+                        </div>
+                        <span className="mt-4 text-center text-[12px] font-black leading-tight text-slate-500">
+                          Sin asignar
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-1 gap-5">
+                    {columnas.map((columna) => {
+                      const tareasDeColumnaYPersona = columna.tareas.filter(
+                        (t) => (t.personaAsignadaId || "sin-asignar") === lane.id
+                      );
+                      return (
+                        <ColumnaKanban
+                          key={`${columna.estado}-${lane.id}`}
+                          estado={columna.estado}
+                          titulo={columna.titulo}
+                          tareas={tareasDeColumnaYPersona}
+                          personas={personas}
+                          estilos={columna.estilos}
+                          arrastreDisponible={arrastreDisponible}
+                          estadoArrastre={estadoArrastre}
+                          destinoDrop={destinoDrop}
+                          onAbrir={(tarea) => setTareaEnEdicion(tarea)}
+                          onEditarTitulo={guardarTituloRapido}
+                          onIniciarArrastre={iniciarArrastre}
+                          onFinalizarArrastre={finalizarArrastre}
+                          onActualizarDestino={actualizarDestino}
+                          onSoltar={completarDrop}
+                          seleccionadas={seleccionadas}
+                          alCambiarSeleccion={(id, sel) => {
+                            setSeleccionadas((actual) =>
+                              sel ? [...actual, id] : actual.filter((i) => i !== id)
+                            );
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-w-max gap-5">
+              {columnas.map((columna) => (
+                <ColumnaKanban
+                  key={columna.estado}
+                  estado={columna.estado}
+                  titulo={columna.titulo}
+                  tareas={columna.tareas}
+                  personas={personas}
+                  estilos={columna.estilos}
+                  arrastreDisponible={arrastreDisponible}
+                  estadoArrastre={estadoArrastre}
+                  destinoDrop={destinoDrop}
+                  onAbrir={(tarea) => setTareaEnEdicion(tarea)}
+                  onEditarTitulo={guardarTituloRapido}
+                  onIniciarArrastre={iniciarArrastre}
+                  onFinalizarArrastre={finalizarArrastre}
+                  onActualizarDestino={actualizarDestino}
+                  onSoltar={completarDrop}
+                  seleccionadas={seleccionadas}
+                  alCambiarSeleccion={(id, sel) => {
+                    setSeleccionadas((actual) =>
+                      sel ? [...actual, id] : actual.filter((i) => i !== id)
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
