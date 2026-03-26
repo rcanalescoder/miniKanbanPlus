@@ -4,7 +4,7 @@
 
 `miniKanbanPlus` es un gestor de tareas visual, ligero y potente, diseñado bajo el paradigma de **Vibe Coding** con Inteligencia Artificial. Está pensado para ayudar a equipos a organizar su trabajo semanal, priorizar compromisos y visualizar su rendimiento de manera inmediata sin complejas configuraciones de servidor.
 
-![Landing Page Front](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/landing_hero_verified_1774450828346.png)
+![Landing Page Front](docs/screenshots/landing_hero_verified_1774450828346.png)
 *Landing page pública explicando la filosofía Agile y la inversión de control.*
 
 ---
@@ -16,7 +16,7 @@ La plataforma cuenta con una página web pública y un entorno de trabajo proteg
 - **Usuario**: `admin`
 - **Contraseña**: `admin`
 
-![Panel de Usuarios](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/usuarios_table_verification_1774445749230.png)
+![Panel de Usuarios](docs/screenshots/usuarios_table_verification_1774445749230.png)
 *Ventana de administración donde puedes dar de alta nuevos miembros, asignar roles y departamentos.*
 
 ### 2. Motor de Datos de Prueba (Generador de Demos)
@@ -24,28 +24,28 @@ Ideal para demostraciones ágiles. El usuario Administrador puede ir a su pantal
 - **Generar Datos de Ejemplo**: Inyecta automáticamente 3 proyectos, 5 empleados de diferentes departamentos de una agencia, y decenas de tareas a lo largo de varias semanas para poblar los informes listos para usarse.
 - **Borrar Todo**: Funcionalidad de 'Hard Reset' para dejar el navegador limpio de fábrica.
 
-![Generador de Demos](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/generated_demo_state_1774481627756.png)
+![Generador de Demos](docs/screenshots/generated_demo_state_1774481627756.png)
 *Controles avanzados de administración y depuración de ejemplos de "Vibe Coding".*
 
 ### 3. Panel Kanban Semanal
 El núcleo operativo del equipo. Permite visualizar el flujo de trabajo de Lunes a Domingo. 
 Puedes introducir nuevas tareas, decidir su prioridad, la complejidad (en puntos), la persona responsable y **navegar cómodamente hacia Semanas Anteriores y Siguientes** para retrospectivas históricas o planificaciones futuras.
 
-![Kanban Semanal](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/kanban_board_verification_1774445732173.png)
+![Kanban Semanal](docs/screenshots/kanban_board_verification_1774445732173.png)
 *El panel Kanban con su diseño vibrante y las tareas categorizadas.*
 
 ### 4. Gestión de Proyectos (Entorno Maestro-Detalle)
 Una configuración visual en pantalla partida (Split View) de alta productividad. A la izquierda navegas por la lista viva de tus proyectos y a la derecha visualizas el inspector del proyecto en tiempo real.
 Además, permite definir **Tareas Recurrentes** dentro de cada proyecto, que aseguran el ciclo regular de labores.
 
-![Proyectos Split View](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/proyectos_split_view_verified_1774482889351.png)
+![Proyectos Split View](docs/screenshots/proyectos_split_view_verified_1774482889351.png)
 *Pestaña de proyectos desplegada como maestro (izquierda) y detalle dinámico (derecha).*
 
 ### 5. Panel de Control (Dashboard Stats)
 Toda estrategia necesita medición para explicar su éxito. El panel de informes cuantifica el trabajo del equipo agregando los puntos de complejidad (Fibonacci) resueltos por las personas y dividiéndolos en los proyectos activos.
 Permite visualizar la eficiencia saltando libremente en la línea temporal: agrupa los datos analíticos por **Semana, Mes o Año**.
 
-![Dashboard Mensual](/Users/rcanales/.gemini/antigravity/brain/015add72-b99a-4b02-b9c4-837b8963fb6c/dashboard_monthly_view_1774480635323.png)
+![Dashboard Mensual](docs/screenshots/dashboard_monthly_view_1774480635323.png)
 *Reportes visuales del rendimiento en base al tiempo.*
 
 ---
