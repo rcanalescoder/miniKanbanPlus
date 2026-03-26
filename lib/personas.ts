@@ -6,7 +6,7 @@ import {
   normalizarUrlImagen
 } from "@/lib/seguridad";
 
-export const almacenamientoPersonas = "miniKanbanPlus.personas.v2";
+export const almacenamientoPersonas = "miniKanbanPlus.personas.v3";
 
 type GamaColor = {
   fondoA: string;
@@ -89,46 +89,63 @@ export function crearPersonaDesdeBorrador(
 export const personasEjemplo: Persona[] = [
   {
     identificador: "PR-ADMIN",
-    nombre: "Administrador",
-    area: "Sistemas",
+    nombre: "Dirección",
+    area: "Administración",
     foto: "",
     color: "#0ea5e9",
     rol: "admin"
   },
   {
     identificador: "PR-1001",
-    nombre: "Pepe",
-    area: "Operaciones",
-    foto: crearFotoAvatar("Pepe", 0),
+    nombre: "Laura",
+    area: "Diseño Gráfico",
+    foto: crearFotoAvatar("Laura", 0),
     color: "#0ea5e9",
     rol: "usuario"
   },
   {
     identificador: "PR-1002",
-    nombre: "Juan",
-    area: "Finanzas",
-    foto: crearFotoAvatar("Juan", 1),
+    nombre: "Carlos",
+    area: "Desarrollo",
+    foto: crearFotoAvatar("Carlos", 1),
     color: "#f59e0b",
     rol: "usuario"
   },
   {
     identificador: "PR-1003",
-    nombre: "Sara",
-    area: "Personas",
-    foto: crearFotoAvatar("Sara", 2),
+    nombre: "Elena",
+    area: "Lanzamiento y QA",
+    foto: crearFotoAvatar("Elena", 4),
+    color: "#8b5cf6",
+    rol: "usuario"
+  },
+  {
+    identificador: "PR-1004",
+    nombre: "Marcos",
+    area: "Marketing",
+    foto: crearFotoAvatar("Marcos", 2),
     color: "#10b981",
+    rol: "usuario"
+  },
+  {
+    identificador: "PR-1005",
+    nombre: "Sofía",
+    area: "Publicidad",
+    foto: crearFotoAvatar("Sofía", 3),
+    color: "#ec4899",
     rol: "usuario"
   }
 ];
 
+
 export function obtenerPersonas(): Persona[] {
-  if (typeof window === "undefined") return personasEjemplo;
+  if (typeof window === "undefined") return [personasEjemplo[0]];
   const raw = window.localStorage.getItem(almacenamientoPersonas);
-  if (!raw) return personasEjemplo;
+  if (!raw) return [personasEjemplo[0]];
   try {
     return JSON.parse(raw) as Persona[];
   } catch {
-    return personasEjemplo;
+    return [personasEjemplo[0]];
   }
 }
 

@@ -28,7 +28,7 @@ const jerarquiaPrioridad: Record<PrioridadTarea, number> = {
   URGENTE: 3
 };
 
-export const almacenamientoTareas = "miniKanbanPlus.tareas.v2"; // Nueva versión para cambios de esquema
+export const almacenamientoTareas = "miniKanbanPlus.tareas.v3";
 
 export function generarIdentificador() {
   return `TK-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
@@ -289,110 +289,280 @@ export function formatearFechaMedia(fechaIso: string) {
   }).format(new Date(fechaIso));
 }
 
-import { obtenerSemanaId } from "@/lib/semanas";
+import { obtenerSemanaId, obtenerSemanaRelativa } from "@/lib/semanas";
 
 const semanaActual = obtenerSemanaId();
+const semanaMenos1 = obtenerSemanaRelativa(semanaActual, -1);
+const semanaMenos2 = obtenerSemanaRelativa(semanaActual, -2);
+
+// Date helpers
+function getDateOffsetAsIso(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+
+function getDateOffsetAsYMD(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
 
 export const tareasEjemplo: Tarea[] = normalizarIndices([
+  // ---- SEMANA ACTUAL (-0) ----
   {
     identificador: "TK-1001",
-    fechaCreacion: "2026-03-10T09:00:00.000Z",
-    titulo: "Preparar reunión de dirección",
-    tipo: "Reunion",
+    fechaCreacion: getDateOffsetAsIso(-1),
+    titulo: "Despliegue a producción portal web",
+    tipo: "Lanzamiento" as any, 
     prioridad: "ALTA",
-    complejidad: 3,
-    fechaDeseableFin: "2026-03-24",
-    observaciones: "Definir agenda, asistentes y mensajes clave para el comité.",
-    enlace: "https://example.com/reunion-direccion",
-    estado: "DEFINIDO",
-    personaAsignadaId: "",
+    complejidad: 8,
+    fechaDeseableFin: getDateOffsetAsYMD(2),
+    observaciones: "Subir landing page final de Cliente 1.",
+    enlace: "https://ejemplo.com",
+    estado: "EN_CURSO",
+    personaAsignadaId: "PR-1003", // Elena (Lanzamiento)
     indiceOrden: 0,
-    semanaId: semanaActual
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1001"
   },
   {
     identificador: "TK-1002",
-    fechaCreacion: "2026-03-11T08:10:00.000Z",
-    titulo: "Revisar indicadores mensuales",
-    tipo: "Analisis",
+    fechaCreacion: getDateOffsetAsIso(-2),
+    titulo: "Ajustar creatividades campaña",
+    tipo: "Diseño" as any,
     prioridad: "MEDIA",
-    complejidad: 2,
-    fechaDeseableFin: "2026-03-26",
-    observaciones: "Comparar desviaciones y extraer alertas para operaciones.",
+    complejidad: 5,
+    fechaDeseableFin: getDateOffsetAsYMD(3),
+    observaciones: "Ajuste de colores para Cliente B.",
     enlace: "",
     estado: "DEFINIDO",
-    personaAsignadaId: "",
-    indiceOrden: 1,
-    semanaId: semanaActual
+    personaAsignadaId: "PR-1001", // Laura (Diseño)
+    indiceOrden: 0,
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1002"
   },
   {
     identificador: "TK-1003",
-    fechaCreacion: "2026-03-12T07:25:00.000Z",
-    titulo: "Coordinar propuesta presupuestaria",
-    tipo: "Coordinacion",
+    fechaCreacion: getDateOffsetAsIso(0),
+    titulo: "Facturación cliente A",
+    tipo: "Planificacion",
     prioridad: "URGENTE",
-    complejidad: 8,
-    fechaDeseableFin: "2026-03-21",
-    observaciones: "Consolidar cifras de finanzas, personas y tecnología.",
+    complejidad: 2,
+    fechaDeseableFin: getDateOffsetAsYMD(1),
+    observaciones: "Emitir facturas pendientes del trimestre.",
     enlace: "",
     estado: "EN_CURSO",
-    personaAsignadaId: "",
-    indiceOrden: 0,
-    semanaId: semanaActual
+    personaAsignadaId: "PR-ADMIN", // Dirección
+    indiceOrden: 1,
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1003"
   },
+  
+  // ---- SEMANA PASADA (-1) ----
   {
     identificador: "TK-1004",
-    fechaCreacion: "2026-03-12T10:45:00.000Z",
-    titulo: "Actualizar cuadro de mando",
-    tipo: "Seguimiento",
+    fechaCreacion: getDateOffsetAsIso(-8),
+    titulo: "Desarrollo del Backend Cliente 1",
+    tipo: "Desarrollo" as any,
     prioridad: "ALTA",
-    complejidad: 5,
-    fechaDeseableFin: "2026-03-22",
-    observaciones: "Refrescar métricas y validar los datos con negocio.",
-    enlace: "https://example.com/cuadro-mando",
-    estado: "EN_CURSO",
-    personaAsignadaId: "",
-    indiceOrden: 1,
-    semanaId: semanaActual
+    complejidad: 8,
+    fechaDeseableFin: getDateOffsetAsYMD(-4),
+    observaciones: "Implementación de API.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1002", // Carlos (Dev)
+    indiceOrden: 0,
+    semanaId: semanaMenos1,
+    proyectoId: "PRJ-1001"
   },
   {
     identificador: "TK-1005",
-    fechaCreacion: "2026-03-13T12:00:00.000Z",
-    titulo: "Validar cronograma de proyecto",
-    tipo: "Planificacion",
+    fechaCreacion: getDateOffsetAsIso(-9),
+    titulo: "Auditoría SEO Cliente B",
+    tipo: "Marketing" as any,
     prioridad: "MEDIA",
     complejidad: 3,
-    fechaDeseableFin: "2026-03-20",
-    observaciones: "Falta confirmación del proveedor externo para cerrar hitos.",
+    fechaDeseableFin: getDateOffsetAsYMD(-5),
+    observaciones: "Revisar palabras clave.",
     enlace: "",
-    estado: "BLOQUEADO",
-    personaAsignadaId: "",
-    indiceOrden: 0,
-    semanaId: semanaActual
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1004", // Marcos (Marketing)
+    indiceOrden: 1,
+    semanaId: semanaMenos1,
+    proyectoId: "PRJ-1002"
   },
   {
     identificador: "TK-1006",
-    fechaCreacion: "2026-03-08T15:20:00.000Z",
-    titulo: "Cerrar informe ejecutivo",
-    tipo: "Documentacion",
-    prioridad: "ALTA",
-    complejidad: 1,
-    fechaDeseableFin: "2026-03-18",
-    observaciones: "Versión final enviada y pendiente solo de archivo interno.",
+    fechaCreacion: getDateOffsetAsIso(-7),
+    titulo: "Lanzar anuncios MetaAds",
+    tipo: "Publicidad" as any,
+    prioridad: "MEDIA",
+    complejidad: 3,
+    fechaDeseableFin: getDateOffsetAsYMD(-3),
+    observaciones: "Presupuesto inicial $500.",
     enlace: "",
     estado: "TERMINADO",
-    personaAsignadaId: "",
+    personaAsignadaId: "PR-1005", // Sofía (Publicidad)
+    indiceOrden: 2,
+    semanaId: semanaMenos1,
+    proyectoId: "PRJ-1002"
+  },
+  {
+    identificador: "TK-1007",
+    fechaCreacion: getDateOffsetAsIso(-10),
+    titulo: "Renovación líneas de crédito",
+    tipo: "Documentacion",
+    prioridad: "ALTA",
+    complejidad: 2,
+    fechaDeseableFin: getDateOffsetAsYMD(-5),
+    observaciones: "Renovar con el banco corporativo.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-ADMIN", // Dirección
+    indiceOrden: 3,
+    semanaId: semanaMenos1,
+    proyectoId: "PRJ-1003"
+  },
+
+  // ---- SEMANA ANTES DE LA PASADA (-2) ----
+  {
+    identificador: "TK-1008",
+    fechaCreacion: getDateOffsetAsIso(-15),
+    titulo: "Diseño UX/UI Cliente 1",
+    tipo: "Diseño" as any,
+    prioridad: "ALTA",
+    complejidad: 8,
+    fechaDeseableFin: getDateOffsetAsYMD(-11),
+    observaciones: "Bocetos y mockups.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1001", // Laura
     indiceOrden: 0,
-    semanaId: semanaActual
+    semanaId: semanaMenos2,
+    proyectoId: "PRJ-1001"
+  },
+  {
+    identificador: "TK-1009",
+    fechaCreacion: getDateOffsetAsIso(-16),
+    titulo: "Kickoff Cliente B",
+    tipo: "Reunion",
+    prioridad: "MEDIA",
+    complejidad: 2,
+    fechaDeseableFin: getDateOffsetAsYMD(-14),
+    observaciones: "Reunión inicial de estrategia.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1004", // Marcos
+    indiceOrden: 1,
+    semanaId: semanaMenos2,
+    proyectoId: "PRJ-1002"
+  },
+  {
+    identificador: "TK-1010",
+    fechaCreacion: getDateOffsetAsIso(-17),
+    titulo: "Facturación cliente B",
+    tipo: "Planificacion",
+    prioridad: "ALTA",
+    complejidad: 1,
+    fechaDeseableFin: getDateOffsetAsYMD(-15),
+    observaciones: "Pago anticipado del 50%.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-ADMIN", // Dirección
+    indiceOrden: 2,
+    semanaId: semanaMenos2,
+    proyectoId: "PRJ-1003"
+  },
+  {
+    identificador: "TK-1011",
+    fechaCreacion: getDateOffsetAsIso(0),
+    titulo: "Revisión SEO Técnico Semanal",
+    tipo: "Revision" as any,
+    prioridad: "MEDIA",
+    complejidad: 3,
+    fechaDeseableFin: getDateOffsetAsYMD(2),
+    observaciones: "Análisis de Core Web Vitals en la web del cliente B.",
+    enlace: "",
+    estado: "EN_CURSO",
+    personaAsignadaId: "PR-1004", // Marcos
+    indiceOrden: 2,
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1002"
+  },
+  {
+    identificador: "TK-1012",
+    fechaCreacion: getDateOffsetAsIso(-5),
+    titulo: "Maquetación de la Home page",
+    tipo: "Desarrollo" as any,
+    prioridad: "ALTA",
+    complejidad: 8,
+    fechaDeseableFin: getDateOffsetAsYMD(-1),
+    observaciones: "Paso de diseño a HTML/React.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1002", // Carlos
+    indiceOrden: 1,
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1001"
+  },
+  {
+    identificador: "TK-1013",
+    fechaCreacion: getDateOffsetAsIso(-14),
+    titulo: "Aprobación de Paleta de Colores",
+    tipo: "Diseño" as any,
+    prioridad: "MEDIA",
+    complejidad: 2,
+    fechaDeseableFin: getDateOffsetAsYMD(-12),
+    observaciones: "Cliente 1 revisó y aprobó la guía de estilo.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-1001", // Laura
+    indiceOrden: 3,
+    semanaId: semanaMenos2,
+    proyectoId: "PRJ-1001"
+  },
+  {
+    identificador: "TK-1014",
+    fechaCreacion: getDateOffsetAsIso(-8),
+    titulo: "Pago de impuestos Q3",
+    tipo: "Planificacion",
+    prioridad: "URGENTE",
+    complejidad: 5,
+    fechaDeseableFin: getDateOffsetAsYMD(-6),
+    observaciones: "Gestión con el asesor contable.",
+    enlace: "",
+    estado: "TERMINADO",
+    personaAsignadaId: "PR-ADMIN", // Dirección
+    indiceOrden: 4,
+    semanaId: semanaMenos1,
+    proyectoId: "PRJ-1003"
+  },
+  {
+    identificador: "TK-1015",
+    fechaCreacion: getDateOffsetAsIso(-2),
+    titulo: "Pruebas de estrés y carga",
+    tipo: "Lanzamiento" as any,
+    prioridad: "ALTA",
+    complejidad: 5,
+    fechaDeseableFin: getDateOffsetAsYMD(0),
+    observaciones: "Asegurar que el backend resiste +10k req/s.",
+    enlace: "",
+    estado: "BLOQUEADO",
+    personaAsignadaId: "PR-1003", // Elena
+    indiceOrden: 0,
+    semanaId: semanaActual,
+    proyectoId: "PRJ-1001"
   }
 ]);
 export function obtenerTareas(): Tarea[] {
-  if (typeof window === "undefined") return tareasEjemplo;
+  if (typeof window === "undefined") return [];
   const raw = window.localStorage.getItem(almacenamientoTareas);
-  if (!raw) return tareasEjemplo;
+  if (!raw) return [];
   try {
     return JSON.parse(raw) as Tarea[];
   } catch {
-    return tareasEjemplo;
+    return [];
   }
 }
 

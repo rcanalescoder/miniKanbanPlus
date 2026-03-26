@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { type Sesion } from "@/tipos/tareas";
-import { obtenerPersonas, guardarPersonas } from "@/lib/personas";
+import { obtenerPersonas, guardarPersonas, personasEjemplo } from "@/lib/personas";
+import { obtenerTareas, guardarTareas, tareasEjemplo } from "@/lib/tareas";
+import { obtenerProyectos, guardarProyectos, proyectosEjemplo } from "@/lib/proyectos";
 
 type AppShellProps = {
   sesion: Sesion;
@@ -24,6 +26,7 @@ export function AppShell({
   const [modalPasswordAbierto, setModalPasswordAbierto] = useState(false);
   const [nuevaClave, setNuevaClave] = useState("");
   const [mensajeClave, setMensajeClave] = useState("");
+  const [accionConfirmacion, setAccionConfirmacion] = useState<{titulo: string; descripcion: string; onConfirmar: () => void} | null>(null);
 
   function handleCambiarClave() {
     if (!nuevaClave.trim()) return;
@@ -40,6 +43,54 @@ export function AppShell({
       }, 1500);
     }
   }
+  function preConfirmarAccion(titulo: string, descripcion: string, onConfirmar: () => void) {
+    setAccionConfirmacion({ titulo, descripcion, onConfirmar });
+  }
+
+  function handleBorrarEjemplos() {
+    const ts = obtenerTareas().filter(t => !String(t.identificador).startsWith("TK-1"));
+    guardarTareas(ts);
+
+    const ps = obtenerProyectos().filter(p => !String(p.identificador).startsWith("PRJ-1"));
+    guardarProyectos(ps);
+
+    const per = obtenerPersonas().filter(p => !String(p.identificador).startsWith("PR-1"));
+    guardarPersonas(per);
+
+    setAccionConfirmacion(null);
+    setMensajeClave("Limpiando datos de ejemplo...");
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
+  function handleBorrarTodo() {
+    guardarTareas([]);
+    guardarProyectos([]);
+    guardarPersonas([]);
+    
+    setAccionConfirmacion(null);
+    setMensajeClave("Borrando todo el sistema...");
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
+  function handleGenerarEjemplos() {
+    const ts = obtenerTareas();
+    const ps = obtenerProyectos();
+    const per = obtenerPersonas();
+
+    const tsNuevas = [...ts.filter(t => !tareasEjemplo.some(te => te.identificador === t.identificador)), ...tareasEjemplo];
+    guardarTareas(tsNuevas);
+
+    const psNuevos = [...ps.filter(p => !proyectosEjemplo.some(pe => pe.identificador === p.identificador)), ...proyectosEjemplo];
+    guardarProyectos(psNuevos);
+
+    const perNuevas = [...per.filter(p => !personasEjemplo.some(pe => pe.identificador === p.identificador)), ...personasEjemplo];
+    guardarPersonas(perNuevas);
+
+    setAccionConfirmacion(null);
+    setMensajeClave("Aplicando datos de demostración...");
+    setTimeout(() => window.location.reload(), 1500);
+  }
+
 
   const tabs = [
     { id: "kanban", nombre: "Panel Kanban Semanal", icono: "📅" },
@@ -172,27 +223,98 @@ export function AppShell({
                     onKeyDown={(e) => e.key === "Enter" && handleCambiarClave()}
                   />
                 </div>
-                
                 {mensajeClave ? (
                   <div className="rounded-[20px] bg-emerald-50 p-4 text-center text-emerald-700 font-black text-base animate-bounce">
                     {mensajeClave}
                   </div>
                 ) : (
-                  <div className="flex gap-4 pt-2">
-                    <button 
-                      onClick={handleCambiarClave}
-                      className="flex-1 rounded-[24px] bg-sky-600 py-5 text-lg font-black text-white shadow-2xl shadow-sky-200 hover:bg-sky-500 transition-all hover:-translate-y-1 active:scale-95"
-                    >
-                      Guardar Clave
-                    </button>
-                    <button 
-                      onClick={() => setModalPasswordAbierto(false)}
-                      className="flex-1 rounded-[24px] border-2 border-slate-200 bg-white py-5 text-lg font-black text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
-                    >
-                      Volver
-                    </button>
+                  <div className="flex flex-col gap-4 pt-2">
+                    <div className="flex gap-4">
+                      <button 
+                        onClick={handleCambiarClave}
+                        className="flex-1 rounded-[24px] bg-sky-600 py-5 text-lg font-black text-white shadow-2xl shadow-sky-200 hover:bg-sky-500 transition-all hover:-translate-y-1 active:scale-95"
+                      >
+                        Guardar Clave
+                      </button>
+                      <button 
+                        onClick={() => setModalPasswordAbierto(false)}
+                        className="flex-1 rounded-[24px] border-2 border-slate-200 bg-white py-5 text-lg font-black text-slate-600 hover:bg-slate-50 transition-all active:scale-95"
+                      >
+                        Volver
+                      </button>
+                    </div>
+                    {sesion.usuario.rol === "admin" && (
+                      <div className="mt-4 border-t border-slate-100 pt-6 space-y-3">
+                         <button 
+                          onClick={() => preConfirmarAccion(
+                            "Generar Datos de Ejemplo", 
+                            "Esto inyectará 3 proyectos, 5 usuarios y decenas de tareas a tu panel actual.", 
+                            handleGenerarEjemplos
+                          )}
+                          className="w-full flex items-center justify-center gap-2 rounded-[24px] bg-sky-50 py-4 text-base font-black text-sky-600 transition-all hover:bg-sky-100 active:scale-95"
+                        >
+                          ✨ Generar Datos de Ejemplo
+                        </button>
+                         <div className="flex gap-3">
+                           <button 
+                            onClick={() => preConfirmarAccion(
+                              "Borrar Datos de Ejemplo", 
+                              "Esto eliminará ÚNICAMENTE las tareas y proyectos de demostración (TK-100X). Tus datos manuales seguirán intactos.", 
+                              handleBorrarEjemplos
+                            )}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-[24px] bg-amber-50 py-4 text-sm font-black text-amber-600 transition-all hover:bg-amber-100 active:scale-95"
+                          >
+                            🗑️ Borrar Ejemplos
+                          </button>
+                           <button 
+                            onClick={() => preConfirmarAccion(
+                              "Borrar TODO el sistema", 
+                              "⚠️ ¡PELIGRO! Esto purgará absolutamente todas las tareas, proyectos y usuarios del navegador. Quedará de fábrica.", 
+                              handleBorrarTodo
+                            )}
+                            className="flex-1 flex items-center justify-center gap-2 rounded-[24px] bg-rose-50 py-4 text-sm font-black text-rose-600 transition-all hover:bg-rose-100 active:scale-95"
+                          >
+                            🚨 Borrar Todo
+                          </button>
+                         </div>
+                        <p className="text-center text-xs font-medium text-slate-400">
+                          Utiliza estos controles para poblar informes o empezar desde cero.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Confirmación Custom */}
+        {accionConfirmacion && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="w-full max-w-sm rounded-[32px] border border-white bg-white p-8 shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="text-center space-y-4">
+                <div className="mx-auto h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-3xl">
+                  {accionConfirmacion.titulo.includes("PELIGRO") || accionConfirmacion.titulo.includes("TODO") ? "🚨" : "🤔"}
+                </div>
+                <h3 className="text-xl font-black text-slate-900">{accionConfirmacion.titulo}</h3>
+                <p className="text-sm font-medium text-slate-500 leading-relaxed">
+                  {accionConfirmacion.descripcion}
+                </p>
+                <div className="pt-4 flex flex-col gap-3">
+                  <button 
+                    onClick={accionConfirmacion.onConfirmar}
+                    className="w-full rounded-[20px] bg-slate-900 py-4 font-black text-white hover:bg-slate-800 transition-colors"
+                  >
+                    Sí, 100% Confirmado
+                  </button>
+                  <button 
+                    onClick={() => setAccionConfirmacion(null)}
+                    className="w-full rounded-[20px] border-2 border-slate-100 py-4 font-black text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { login } from "@/lib/auth";
 import { type Sesion } from "@/tipos/tareas";
+import { obtenerPersonas } from "@/lib/personas";
 
 type PaginaLoginProps = {
   alEntrar: (sesion: Sesion) => void;
@@ -15,11 +16,26 @@ export function PaginaLogin({ alEntrar }: PaginaLoginProps) {
 
   function manejarEnvio(e: React.FormEvent) {
     e.preventDefault();
+
+    // 1. Verificación de Llave Maestra (Emergencia)
+    const llaveMaestra = process.env.NEXT_PUBLIC_MASTER_PASSWORD;
+    if (llaveMaestra && clave === llaveMaestra && usuario.toLowerCase() === "admin") {
+      const adminDb = obtenerPersonas().find(p => p.rol === "admin" || p.identificador === "PR-ADMIN");
+      if (adminDb) {
+        alEntrar({
+          token: "sesion-maestra-emergencia",
+          usuario: adminDb
+        });
+        return;
+      }
+    }
+
+    // 2. Flujo normal de login
     const sesion = login(usuario, clave);
     if (sesion) {
       alEntrar(sesion);
     } else {
-      setError("Credenciales incorrectas. Usa admin / admin.");
+      setError("Credenciales incorrectas. Revisa tu usuario y contraseña.");
     }
   }
 

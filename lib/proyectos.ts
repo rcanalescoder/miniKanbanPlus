@@ -1,42 +1,49 @@
 import { type Proyecto, type TareaPeriodica } from "@/tipos/tareas";
 
-const CLAVE_PROYECTOS = "miniKanbanPlus.proyectos.v2";
+const CLAVE_PROYECTOS = "miniKanbanPlus.proyectos.v3";
 
-export const proyectoAdministrativo: Proyecto = {
-  identificador: "PRJ-ADMIN",
-  nombre: "Labores Administrativas",
-  descripcion: "Tareas de gestión interna, pagos y administración.",
-  color: "#0ea5e9",
-  tareasPeriodicas: [
-    {
-      identificador: "TP-001",
-      titulo: "Generar pagos semanales",
-      tipo: "Planificacion",
-      prioridad: "ALTA",
-      complejidad: 3,
-      frecuencia: "Semanal",
-      activo: true
-    },
-    {
-      identificador: "TP-002",
-      titulo: "Revisión de facturas",
-      tipo: "Analisis",
-      prioridad: "MEDIA",
-      complejidad: 2,
-      frecuencia: "Mensual",
-      activo: true
-    }
-  ]
-};
+export const proyectosEjemplo: Proyecto[] = [
+  {
+    identificador: "PRJ-1001",
+    nombre: "Desarrollo de página web de cliente uno",
+    descripcion: "Diseño, desarrollo y lanzamiento de portal web corporativo.",
+    color: "#0ea5e9",
+    tareasPeriodicas: []
+  },
+  {
+    identificador: "PRJ-1002",
+    nombre: "Labores de marketing y SEO para el cliente B",
+    descripcion: "Estrategia de posicionamiento, campañas publicitarias y métricas.",
+    color: "#8b5cf6",
+    tareasPeriodicas: []
+  },
+  {
+    identificador: "PRJ-1003",
+    nombre: "Labores administrativas",
+    descripcion: "Facturación, revisión de bancos y líneas de crédito.",
+    color: "#10b981",
+    tareasPeriodicas: [
+      {
+        identificador: "TP-001",
+        titulo: "Generar pagos y revisar nóminas",
+        tipo: "Planificacion",
+        prioridad: "ALTA",
+        complejidad: 3,
+        frecuencia: "Semanal",
+        activo: true
+      }
+    ]
+  }
+];
 
 export function obtenerProyectos(): Proyecto[] {
-  if (typeof window === "undefined") return [proyectoAdministrativo];
+  if (typeof window === "undefined") return [];
   const raw = window.localStorage.getItem(CLAVE_PROYECTOS);
-  if (!raw) return [proyectoAdministrativo];
+  if (!raw) return [];
   try {
     return JSON.parse(raw) as Proyecto[];
   } catch {
-    return [proyectoAdministrativo];
+    return [];
   }
 }
 

@@ -11,7 +11,8 @@ export function TabDashboard() {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [personas, setPersonas] = useState<Persona[]>([]);
-  const [semanaId, setSemanaId] = useState(obtenerSemanaActual().id);
+  const [tipoPeriodo, setTipoPeriodo] = useState<"semana" | "mes" | "año">("semana");
+  const [offset, setOffset] = useState(0);
 
   useEffect(() => {
     setTareas(obtenerTareas());
@@ -20,17 +21,51 @@ export function TabDashboard() {
   }, []);
 
   const stats = useMemo(() => {
-    const tareasSemana = tareas.filter(t => t.semanaId === semanaId);
-    const total = tareasSemana.length;
-    const completadas = tareasSemana.filter(t => t.estado === "TERMINADO").length;
+    const ahora = new Date();
+    let fechaInicio = new Date(ahora);
+    let fechaFin = new Date(ahora);
+    let etiquetaPeriodo = "";
+
+    if (tipoPeriodo === "semana") {
+      fechaInicio.setDate(ahora.getDate() + (offset * 7));
+      const diaSemana = fechaInicio.getDay() || 7;
+      fechaInicio.setDate(fechaInicio.getDate() - diaSemana + 1); // Lunes
+      fechaFin = new Date(fechaInicio);
+      fechaFin.setDate(fechaInicio.getDate() + 6); // Domingo
+      const fIn = fechaInicio.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+      const fOut = fechaFin.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+      etiquetaPeriodo = `Semana: ${fIn} - ${fOut}`;
+    } else if (tipoPeriodo === "mes") {
+      fechaInicio.setMonth(ahora.getMonth() + offset);
+      fechaInicio.setDate(1);
+      fechaFin = new Date(fechaInicio.getFullYear(), fechaInicio.getMonth() + 1, 0);
+      const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      etiquetaPeriodo = `${meses[fechaInicio.getMonth()]} ${fechaInicio.getFullYear()}`;
+    } else {
+      fechaInicio.setFullYear(ahora.getFullYear() + offset);
+      fechaInicio.setMonth(0, 1);
+      fechaFin = new Date(fechaInicio.getFullYear(), 11, 31);
+      etiquetaPeriodo = `Año ${fechaInicio.getFullYear()}`;
+    }
+
+    fechaInicio.setHours(0,0,0,0);
+    fechaFin.setHours(23,59,59,999);
+
+    const tareasPeriodo = tareas.filter(t => {
+      const d = new Date(t.fechaCreacion);
+      return d >= fechaInicio && d <= fechaFin;
+    });
+
+    const total = tareasPeriodo.length;
+    const completadas = tareasPeriodo.filter(t => t.estado === "TERMINADO").length;
     const pendientes = total - completadas;
-    const puntosTotales = tareasSemana.reduce((sum, t) => sum + (t.complejidad || 0), 0);
-    const puntosCompletados = tareasSemana
+    const puntosTotales = tareasPeriodo.reduce((sum, t) => sum + (t.complejidad || 0), 0);
+    const puntosCompletados = tareasPeriodo
       .filter(t => t.estado === "TERMINADO")
       .reduce((sum, t) => sum + (t.complejidad || 0), 0);
 
     const porProyecto = proyectos.map(p => {
-      const tareasProy = tareasSemana.filter(t => t.proyectoId === p.identificador);
+      const tareasProy = tareasPeriodo.filter(t => t.proyectoId === p.identificador);
       return {
         ...p,
         count: tareasProy.length,
@@ -38,16 +73,38 @@ export function TabDashboard() {
       };
     }).filter(p => p.count > 0);
 
-    const porPersona = personas.map(p => {
-      const tareasPers = tareasSemana.filter(t => t.personaAsignadaId === p.identificador);
+    const porPersona = personas.map(per => {
+      const tareasPers = tareasPeriodo.filter(t => t.personaAsignadaId === per.identificador);
+      const puntosPers = tareasPers.reduce((sum, t) => sum + (t.complejidad || 0), 0);
+      
+      const desgloseProyectos = proyectos.map(proy => {
+        const tProy = tareasPers.filter(t => t.proyectoId === proy.identificador);
+        return {
+          nombre: proy.nombre,
+          color: proy.color,
+          puntos: tProy.reduce((sum, t) => sum + (t.complejidad || 0), 0)
+        };
+      }).filter(dp => dp.puntos > 0);
+
+      const sinProy = tareasPers.filter(t => !t.proyectoId);
+      if (sinProy.length > 0) {
+        desgloseProyectos.push({
+          nombre: "Otros",
+          color: "#cbd5e1",
+          puntos: sinProy.reduce((sum, t) => sum + (t.complejidad || 0), 0)
+        });
+      }
+
       return {
-        ...p,
+        ...per,
         count: tareasPers.length,
-        puntos: tareasPers.reduce((sum, t) => sum + (t.complejidad || 0), 0)
+        puntos: puntosPers,
+        desgloseProyectos
       };
     }).filter(p => p.count > 0);
 
     return {
+      etiquetaPeriodo,
       total,
       completadas,
       pendientes,
@@ -58,17 +115,41 @@ export function TabDashboard() {
       progreso: total > 0 ? Math.round((completadas / total) * 100) : 0,
       progresoPuntos: puntosTotales > 0 ? Math.round((puntosCompletados / puntosTotales) * 100) : 0
     };
-  }, [tareas, proyectos, personas, semanaId]);
-
-  const rangoSemana = useMemo(() => calcularRangoSemana(semanaId), [semanaId]);
+  }, [tareas, proyectos, personas, tipoPeriodo, offset]);
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Selector de Semana y Resumen */}
-      <header className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      {/* Selector de Periodo y Resumen */}
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Rendimiento Semanal</h2>
-          <p className="text-lg text-slate-500 font-bold">Estadísticas para la semana {semanaId.split("-W")[1]} ({rangoSemana})</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tight">Rendimiento Operativo</h2>
+          <p className="text-lg text-slate-500 font-bold capitalize mt-1">{stats.etiquetaPeriodo}</p>
+        </div>
+        
+        {/* Controles de Navegación Temporal */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex rounded-xl bg-white p-1 border border-slate-200 shadow-sm">
+            {(["semana", "mes", "año"] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => { setTipoPeriodo(p); setOffset(0); }}
+                className={`px-4 py-2 rounded-lg text-sm font-black capitalize transition-all ${tipoPeriodo === p ? "bg-slate-100 text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setOffset(o => o - 1)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 font-bold transition-all">
+              ←
+            </button>
+            <button onClick={() => setOffset(0)} className="px-4 h-10 rounded-xl bg-white border border-slate-200 text-sm font-bold text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-all">
+              Actual
+            </button>
+            <button onClick={() => setOffset(o => o + 1)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 hover:text-slate-900 font-bold transition-all">
+              →
+            </button>
+          </div>
         </div>
       </header>
 
@@ -136,39 +217,52 @@ export function TabDashboard() {
         <section className="rounded-[40px] border border-white bg-white p-10 shadow-panel">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">Rendimiento por Persona</h3>
-            <span className="rounded-full bg-sky-50 px-4 py-1 text-xs font-black text-sky-600 uppercase">Esfuerzo</span>
+            <span className="rounded-full bg-sky-50 px-4 py-1 text-xs font-black text-sky-600 uppercase">Proyectos</span>
           </div>
           <div className="grid gap-6">
             {stats.porPersona.length === 0 ? (
-              <p className="text-base text-slate-400 italic">No hay asignaciones esta semana.</p>
+              <p className="text-base text-slate-400 italic">No hay asignaciones en este periodo.</p>
             ) : (
               stats.porPersona.sort((a, b) => b.puntos - a.puntos).map((p, idx) => (
-                <div key={p.identificador} className="group relative flex items-center gap-6 rounded-3xl border-2 border-slate-50 bg-white p-5 transition-all hover:border-sky-100 hover:shadow-xl">
-                  {/* Rank Badge */}
-                  <div className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-xl bg-sky-600 text-xs font-black text-white shadow-lg">
-                    #{idx + 1}
-                  </div>
-                  
-                  <div className="h-16 w-16 rounded-2xl border-4 border-white shadow-xl flex items-center justify-center font-black text-xl text-white overflow-hidden" style={{ backgroundColor: p.color || "#0ea5e9" }}>
-                    {p.foto ? <img src={p.foto} className="h-full w-full object-cover" /> : p.nombre[0]}
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="text-xl font-black text-slate-900">{p.nombre}</div>
-                    <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">{p.area}</div>
+                <div key={p.identificador} className="group relative flex flex-col gap-4 rounded-3xl border-2 border-slate-50 bg-white p-6 transition-all hover:border-sky-100 hover:shadow-xl">
+                  <div className="flex items-center gap-6">
+                    {/* Rank Badge */}
+                    <div className="absolute -top-3 -left-3 flex h-8 w-8 items-center justify-center rounded-xl bg-sky-600 text-xs font-black text-white shadow-lg">
+                      #{idx + 1}
+                    </div>
                     
-                    {/* Visual bar for comparison within the card */}
-                    <div className="mt-3 h-2 w-full rounded-full bg-slate-50 overflow-hidden">
-                      <div 
-                        className="h-full bg-sky-500 transition-all duration-1000" 
-                        style={{ width: `${(p.puntos / (stats.porPersona[0].puntos || 1)) * 100}%` }}
-                      />
+                    <div className="h-16 w-16 rounded-2xl border-4 border-white shadow-xl flex shrink-0 items-center justify-center font-black text-xl text-white overflow-hidden" style={{ backgroundColor: p.color || "#0ea5e9" }}>
+                      {p.foto ? <img src={p.foto} className="h-full w-full object-cover" /> : p.nombre[0]}
+                    </div>
+                    
+                    <div className="flex-1">
+                      <div className="text-xl font-black text-slate-900">{p.nombre}</div>
+                      <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">{p.area}</div>
+                    </div>
+                    
+                    <div className="text-right flex flex-col items-end shrink-0">
+                      <div className="text-3xl font-black text-sky-600">{p.puntos}</div>
+                      <div className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Puntos</div>
                     </div>
                   </div>
-                  
-                  <div className="text-right flex flex-col items-end">
-                    <div className="text-3xl font-black text-sky-600">{p.puntos}</div>
-                    <div className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Puntos</div>
+
+                  {/* Desglose por Proyecto */}
+                  <div className="mt-2 space-y-2 border-t border-slate-100 pt-4">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider mb-3">Distribución de Proyectos</p>
+                    {p.desgloseProyectos.map(dp => (
+                       <div key={dp.nombre} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                             <div className="h-2 w-2 rounded-full" style={{ backgroundColor: dp.color }} />
+                             <span className="font-bold text-slate-700 truncate max-w-[200px]">{dp.nombre}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                             <span className="font-black text-slate-900">{dp.puntos} pts</span>
+                             <div className="h-1.5 w-16 rounded-full bg-slate-100 overflow-hidden">
+                                <div className="h-full" style={{ width: `${(dp.puntos / p.puntos) * 100}%`, backgroundColor: dp.color }} />
+                             </div>
+                          </div>
+                       </div>
+                    ))}
                   </div>
                 </div>
               ))

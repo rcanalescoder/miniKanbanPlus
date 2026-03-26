@@ -100,7 +100,7 @@ export function LandingPage({ alEntrar }: LandingPageProps) {
           <h2 className="text-4xl font-black tracking-tight text-slate-950 mb-8">Quiénes Somos</h2>
           <div className="prose prose-slate prose-lg max-w-none text-slate-500 font-medium leading-relaxed">
             <p className="text-2xl text-slate-900 font-bold mb-6 italic">
-              Este proyecto es un ejemplo práctico de las capacidades de generación de código mediante bytecoding.
+              Este proyecto es un ejemplo práctico de las capacidades de generación de código mediante vibe coding.
             </p>
             <p>
               Nuestra misión es demostrar cómo la tecnología puede actuar como catalizador para la organización del trabajo semanal, ayudando a los equipos a gestionar sus proyectos de manera visual y efectiva a través de paneles Kanban inteligentes.
@@ -171,7 +171,7 @@ export function LandingPage({ alEntrar }: LandingPageProps) {
 
       <footer className="border-t border-slate-100 py-12 px-6 lg:px-10 text-center">
         <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.3em]">
-          © 2026 miniKanbanPlus • Bytecoding Example Project
+          © 2026 miniKanbanPlus • Vibe Coding Example Project
         </p>
       </footer>
 
