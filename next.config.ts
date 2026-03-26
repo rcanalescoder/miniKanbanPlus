@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
+const isGithubActions = process.env.GH_PAGES === "true";
+
 const nextConfig: NextConfig = {
   output: "export",
+  basePath: isGithubActions ? "/miniKanbanPlus" : "",
+  assetPrefix: isGithubActions ? "/miniKanbanPlus/" : "",
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
