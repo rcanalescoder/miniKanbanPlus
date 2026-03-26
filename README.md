@@ -4,6 +4,8 @@
 
 `miniKanbanPlus` es un gestor de tareas visual, ligero y potente, diseñado bajo el paradigma de **Vibe Coding** con Inteligencia Artificial. Está pensado para ayudar a equipos a organizar su trabajo semanal, priorizar compromisos y visualizar su rendimiento de manera inmediata sin complejas configuraciones de servidor.
 
+🟢 **Demostración en Vivo:** [https://rcanalescoder.github.io/miniKanbanPlus/](https://rcanalescoder.github.io/miniKanbanPlus/)
+
 ![Landing Page Front](docs/screenshots/landing_hero_verified_1774450828346.png)
 *Landing page pública explicando la filosofía Agile y la inversión de control.*
 
