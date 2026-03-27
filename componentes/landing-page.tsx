@@ -157,7 +157,7 @@ export function LandingPage({ alEntrar }: LandingPageProps) {
 
       {/* Textos Legales */}
       <Section id="legal" className="py-16 sm:py-24">
-        <div className="grid gap-12 md:grid-cols-2">
+        <div className="grid gap-12 grid-cols-1">
           <div className="rounded-[40px] border-2 border-slate-100 bg-slate-50 p-12">
             <h3 className="text-2xl font-black text-slate-950 mb-6">Texto Legal</h3>
             <div className="space-y-4 text-base font-medium text-slate-600 leading-relaxed italic">
@@ -172,7 +172,7 @@ export function LandingPage({ alEntrar }: LandingPageProps) {
           
           <div className="rounded-[40px] border-2 border-slate-100 bg-slate-50 p-12">
             <h3 className="text-2xl font-black text-slate-950 mb-6 font-mono">MIT License (ES)</h3>
-            <div className="space-y-4 text-xs font-mono text-slate-500 leading-relaxed overflow-y-auto max-h-60 p-4 bg-white rounded-2xl">
+            <div className="space-y-4 text-xs font-mono text-slate-500 leading-relaxed p-4 bg-white rounded-2xl">
               <p className="font-bold underline text-slate-700">Licencia MIT en Castellano</p>
               <p>Por la presente se otorga permiso, sin cargo, a cualquier persona que obtenga una copia de este software y los archivos de documentación asociados (el "Software"), para tratar con el Software sin restricciones, incluido, sin limitación, los derechos de uso, copia, modificación, fusión, publicación, distribución, sublicencia y/o venta de copias del Software.</p>
               <p>Sujeto a las siguientes condiciones:</p>

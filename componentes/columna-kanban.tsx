@@ -15,6 +15,7 @@ type PropiedadesColumnaKanban = {
   arrastreDisponible: boolean;
   estadoArrastre: { identificador: string; origen: EstadoKanban } | null;
   destinoDrop: DestinoArrastre | null;
+  personaId?: string;
   onAbrir: (tarea: Tarea) => void;
   onEditarTitulo: (identificador: string, titulo: string) => void;
   onIniciarArrastre: (identificador: string, estado: EstadoKanban) => void;
@@ -34,6 +35,7 @@ export function ColumnaKanban({
   arrastreDisponible,
   estadoArrastre,
   destinoDrop,
+  personaId,
   onAbrir,
   onEditarTitulo,
   onIniciarArrastre,
@@ -43,8 +45,8 @@ export function ColumnaKanban({
   seleccionadas,
   alCambiarSeleccion
 }: PropiedadesColumnaKanban) {
-  const mostrarHuecoFinal =
-    destinoDrop?.estado === estado && destinoDrop.indice === tareas.length;
+  const destinoCoincide = destinoDrop?.estado === estado && destinoDrop?.personaId === personaId;
+  const mostrarHuecoFinal = destinoCoincide && destinoDrop.indice === tareas.length;
 
   return (
     <section
@@ -55,7 +57,7 @@ export function ColumnaKanban({
         }
 
         evento.preventDefault();
-        onActualizarDestino({ estado, indice: tareas.length });
+        onActualizarDestino({ estado, indice: tareas.length, personaId });
       }}
       onDrop={(evento) => {
         if (!arrastreDisponible) {
@@ -85,7 +87,7 @@ export function ColumnaKanban({
       <div className="mt-4 grid min-h-[220px] grid-cols-1 gap-3 2xl:grid-cols-2">
         {tareas.map((tarea, indice) => {
           const mostrarHueco =
-            destinoDrop?.estado === estado &&
+            destinoCoincide &&
             destinoDrop.indice === indice &&
             estadoArrastre?.identificador !== tarea.identificador;
 
@@ -98,7 +100,7 @@ export function ColumnaKanban({
                 }
 
                 evento.preventDefault();
-                onActualizarDestino({ estado, indice });
+                onActualizarDestino({ estado, indice, personaId });
               }}
               onDrop={(evento) => {
                 if (!arrastreDisponible) {

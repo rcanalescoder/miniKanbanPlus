@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { type Sesion } from "@/tipos/tareas";
 import { obtenerPersonas, guardarPersonas, personasEjemplo } from "@/lib/personas";
 import { obtenerTareas, guardarTareas, tareasEjemplo } from "@/lib/tareas";
@@ -106,19 +107,19 @@ export function AppShell({
         <div className="mx-auto flex h-28 max-w-[98%] items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-10">
             <div className="flex items-center gap-4">
-              <a 
+              <Link 
                 href="/"
                 className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-sky-600 font-black text-xl text-white shadow-xl shadow-sky-500/20 hover:scale-105 transition-transform"
               >
                 MK
-              </a>
+              </Link>
               <div className="flex flex-col">
-                <a 
+                <Link 
                   href="/"
                   className="text-3xl font-black tracking-tighter text-slate-950 hover:text-sky-600 transition-colors"
                 >
                   miniKanbanPlus
-                </a>
+                </Link>
                 {editandoTitulo ? (
                   <input
                     autoFocus

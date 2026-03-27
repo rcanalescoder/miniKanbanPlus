@@ -112,6 +112,7 @@ export type ConfiguracionCargaRapida = {
 export type DestinoArrastre = {
   estado: EstadoKanban;
   indice: number;
+  personaId?: string;
 };
 
 export type Sesion = {

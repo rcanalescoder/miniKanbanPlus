@@ -698,6 +698,7 @@ export function TableroKanban() {
                           arrastreDisponible={arrastreDisponible}
                           estadoArrastre={estadoArrastre}
                           destinoDrop={destinoDrop}
+                          personaId={lane.id === "sin-asignar" ? "" : lane.id}
                           onAbrir={(tarea) => setTareaEnEdicion(tarea)}
                           onEditarTitulo={guardarTituloRapido}
                           onIniciarArrastre={iniciarArrastre}

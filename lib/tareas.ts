@@ -170,7 +170,8 @@ export function moverTarea(
 
   const tareaMovida: Tarea = {
     ...origen,
-    estado: destino.estado
+    estado: destino.estado,
+    ...(destino.personaId !== undefined ? { personaAsignadaId: destino.personaId } : {})
   };
 
   grupoDestino.splice(indiceNormalizado, 0, tareaMovida);

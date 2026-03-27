@@ -89,6 +89,13 @@ export function PaginaLogin({ alEntrar }: PaginaLoginProps) {
             </div>
           </div>
 
+          <div className="rounded-2xl bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800 border border-sky-100 flex items-start gap-3">
+            <span className="text-sky-500 mt-0.5">💡</span>
+            <p>
+              <strong>Modo demostración:</strong> El usuario y contraseña por defecto son <span className="font-bold font-mono bg-white px-1.5 py-0.5 rounded text-sky-900 border border-sky-200">admin</span> - <span className="font-bold font-mono bg-white px-1.5 py-0.5 rounded text-sky-900 border border-sky-200">admin</span>.
+            </p>
+          </div>
+
           {error && (
             <div className="rounded-2xl bg-rose-500/10 px-4 py-3 text-sm font-bold text-rose-400 border border-rose-500/20 animate-in fade-in zoom-in-95">
               ⚠️ {error}
