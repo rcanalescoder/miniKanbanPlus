@@ -4,6 +4,7 @@ import { useState } from "react";
 import { type Sesion } from "@/tipos/tareas";
 import { PaginaLogin } from "./login";
 import { Section, LandingCard, HeroTitle, Quote } from "./landing-sections";
+import qrCodeImg from "../public/assets/qr_code.jpg";
 
 type LandingPageProps = {
   alEntrar: (sesion: Sesion) => void;
@@ -133,7 +134,7 @@ export function LandingPage({ alEntrar }: LandingPageProps) {
           </div>
           <div className="flex flex-col items-center justify-center gap-8 lg:pr-10 pb-8">
             <div className="h-64 w-64 rounded-3xl bg-white p-2 shadow-2xl shadow-indigo-200/50 overflow-hidden ring-4 ring-white">
-               <img src="/assets/qr_code.jpg" alt="WhatsApp QR Code" className="h-full w-full object-cover rounded-2xl" />
+               <img src={qrCodeImg.src} alt="WhatsApp QR Code" className="h-full w-full object-cover rounded-2xl" />
             </div>
             <p className="text-center text-xs font-black text-indigo-400 uppercase tracking-[0.4em]">Escanéame</p>
           </div>
